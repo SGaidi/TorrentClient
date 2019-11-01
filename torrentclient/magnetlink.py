@@ -1,18 +1,53 @@
 import html
+import functools
 import urllib.parse
 
 
 class MagnetLink:
-    """Class for extracting all supported information from a magnet link
-    Reference: https://en.wikipedia.org/wiki/Magnet_URI_scheme
+    """Class for extracting all BitTorrent supported information from a magnet link.
+
+    Reference:
+        https://en.wikipedia.org/wiki/Magnet_URI_scheme
+        https://libtorrent.org/manual.html#magnet-links - BitTorrent minimal parameters used in libtorrent.
+
+    Parameters used in libtorrent:
+        `Display Name` - Supported by all clients.
+        `Exact Topic` - Each client implements different encryption & decryption methods,
+            libtorrent uses BTIH (BitTorrent Info Hash), which is most common.
+        `Address Tracker` - List of trackers, supported by most clients.
+
+    Optional parameters:
+        `Exact Length` - Supported by most clients.
+        `Exact Source` - Direct or backup source (HTTPS, FTPS, etc) at P2P source with file hash,
+            supported by some clients.
+        `Acceptable Source` - Direct download from a web server, supported by some clients.
+
+    Rarely used parameters:
+        `Keyword Topic` - List of search words used in P2P networks.
+        `Manifest` - Link to a list of links (web, URN).
     """
 
+    SUPPORTED_PARAMS = {
+        'dn': "Display Name",
+        'xl': "Exact Length",
+        'xt': "Exact Topic",
+        'as': "Acceptable Source",
+        'xs': "Exact Source",
+        'kt': "Keyword Topic",
+        'mt': "Manifest Topic",
+        'tr': "Address Tracker",
+    }
+
     def __init__(self, value: str):
-        self.value = value
+        if not isinstance(value, str):
+            raise ValueError("MagnetLink value ({}) is of type ({}), should be str".format(value, type(value).__name__))
         try:
             self.__parsed = urllib.parse.parse_qs(value.split('magnet:?')[1])
         except Exception as e:
             raise ValueError("Could not parse magnet link '{}': {}".format(value, e))
+
+    def __str__(self):
+        return "MagnetLink '{}'".format(self.display_name)
 
     @property
     def display_name(self) -> str:
@@ -51,17 +86,18 @@ class MagnetLink:
 
     @property
     def address_tracker(self) -> list:
-        """tracker URL for BitTorrent downloads"""
+        """tracker URLs for BitTorrent downloads"""
         return self.__parsed['tr']
 
     @staticmethod
-    def is_experimental_param(param: str) -> bool:
+    def __is_experimental_param(param: str) -> bool:
         return param.startswith('x.') and param[2:].isalpha()
 
     @property
+    @functools.lru_cache()
     def experimental_parameters(self) -> dict:
         """application-specific experimental parameters"""
-        return dict({key: value for key, value in self.__parsed.items() if self.is_experimental_param(key)})
+        return dict({key: value for key, value in self.__parsed.items() if self.__is_experimental_param(key)})
 
     def __getattr__(self, name):
         """gets called only if no attributes of `self` instance matches `name`
@@ -72,29 +108,21 @@ class MagnetLink:
             raise AttributeError
 
 
+def encode(values: dict):
+    """TODO: TBD"""
+    return "magnet:?{}".format(urllib.urlencode(values))
+
+
+def decode(text: str):
+    return MagnetLink(text)
+
+
 def convert(magnet_link: str):
     magnet_link = html.unescape(magnet_link)
     magnet_parsed = urllib.parse.parse_qs(magnet_link.split('magnet:?')[1])
     print(magnet_parsed)
+    ml = MagnetLink(magnet_link)
+    print(ml.experimental_parameters)
 
 
-"""
-#Add the trackers
-magnetLink = base
-for tracker in trackers:
-    magnetLink += '&tr=' + tracker
-
-# TODO: URN parser in separate class
-#Create the torrent file name
-magnetName = magnetLink[magnetLink.find("btih:") + 1:magnetLink.find("&")]
-magnetName = magnetName.replace('tih:','')
-torrentfilename = 'meta-' + magnetName + '.torrent'
-
-# TODO: pass all these parameters to Torrent class
-#Write the magnet link to the torrent file
-with open(torrentfilename, 'w') as o:
-    linkstr = u'd10:magnet-uri' + str(len(magnetLink)) + u':' + magnetLink + u'e'
-    linkstr = linkstr.encode('utf8')
-    o.write(linkstr)
-"""
 convert('magnet:?xt=urn:btih:b54a3ba68fd398ed019e21290beecc9dda64a858&dn=wikipedia_en_all_novid_2018-06.zim&tr=udp%3a%2f%2ftracker.mg64.net')

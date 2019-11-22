@@ -19,8 +19,4 @@ def encode(obj: object) -> str:
         else:
             for obj_attr_item in obj_attr_value:
                 ml_pairs.append((defined_param.key, obj_attr_item))
-    return "magnet:?{}".format(urllib.parse.urlencode(ml_pairs))
-
-
-encode(MagnetLink(display_name="Sarah Gaidi", address_tracker="1.2.3.4"))
-encode(MagnetLink(display_name="Sarah Gaidi", address_tracker=["1.2.3.4", "5.6.7.8"]))
+    return "magnet:?{}".format(urllib.parse.urlencode(ml_pairs, safe=':'))

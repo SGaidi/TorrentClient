@@ -19,4 +19,4 @@ def encode(obj: object) -> str:
         else:
             for obj_attr_item in obj_attr_value:
                 ml_pairs.append((defined_param.key, obj_attr_item))
-    return "magnet:?{}".format(urllib.parse.urlencode(ml_pairs, safe=':'))
+    return "magnet:?{}".format(urllib.parse.urlencode(ml_pairs, safe=':%+'))

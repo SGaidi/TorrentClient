@@ -1,6 +1,7 @@
 import urllib.parse
-from torrentclient.mlcode.defineparam import DefineParam as df
+
 from torrentclient.mlcode.magnetlink import MagnetLink
+from torrentclient.mlcode.defineparam import DefineParam as dp
 
 
 def encode(obj: object) -> str:
@@ -10,7 +11,7 @@ def encode(obj: object) -> str:
     """
     ml_pairs = []
     for obj_attr_name, obj_attr_value in obj.__dict__.items():
-        defined_param = df.match_name(obj_attr_name)
+        defined_param = dp.match_name(obj_attr_name)
         if defined_param is None:
             raise ValueError("encode() cannot classify '{}' attribute name.".format(obj_attr_name))
         if not isinstance(obj_attr_value, list):

@@ -1,3 +1,4 @@
+"""depends on `test_defineparam.py`"""
 import pytest
 
 from torrentclient.mlcode.magnetlink import MagnetLink as ml

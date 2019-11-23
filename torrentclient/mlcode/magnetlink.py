@@ -5,7 +5,7 @@ class MagnetLink:
     """Data class of all supported parameters of a magnet-link"""
 
     @classmethod
-    def is_list_of_str(cls, obj) -> bool:
+    def _is_list_of_str(cls, obj) -> bool:
         if not isinstance(obj, list):
             return False
         for item in obj:
@@ -14,15 +14,24 @@ class MagnetLink:
         return True
 
     def __init__(self, **kwargs):
+        self.parameters = {}
         for attr_name, attr_value in kwargs.items():
             param = dp.match_name(attr_name)
             if param is None:
                 raise TypeError("__init__() got an unexpected keyword argument '{}'.".format(attr_name))
-            if not isinstance(attr_value, str) and not self.is_list_of_str(attr_value):
+            if not isinstance(attr_value, str) and not self._is_list_of_str(attr_value):
                 raise ValueError(
                     "__init__() got invalid type of argument ({}), should be a str or list of str.".format(attr_value))
-            setattr(self, attr_name, attr_value)
+            self.parameters[attr_name] = attr_value
     __init__.__doc__ = '\n'.join(":param {}: {}".format(ml_param.name, ml_param.doc) for ml_param in dp.DEFINED_PARAMS)
+
+    def __repr__(self):
+        return "MagnetLink:\n{}".format('\n'.join("{}:{}".format(key, value) for key, value in self.parameters.items()))
+
+    def __eq__(self, other) -> bool:
+        print(self)
+        print(other.__dict__)
+        return isinstance(other, MagnetLink) and self.parameters == other.parameters
 
 
 # Define all of MagnetLink's attributes

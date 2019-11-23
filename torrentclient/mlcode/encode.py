@@ -4,19 +4,22 @@ from torrentclient.mlcode.magnetlink import MagnetLink
 from torrentclient.mlcode.defineparam import DefineParam as dp
 
 
-def encode(obj: object) -> str:
+def encode(ml_obj: MagnetLink) -> str:
     """
-    :param obj: holds attributes with names of URI parameters
-    :return: string of encoded magnet-link
+    :param ml_obj: MagnetLink with URI parameters
+    :return: str of encoded magnet-link
     """
     ml_pairs = []
-    for obj_attr_name, obj_attr_value in obj.__dict__.items():
-        defined_param = dp.match_name(obj_attr_name)
+    ml_str = "magnet:?"
+    for ml_attr_name, ml_attr_value in ml_obj.parameters.items():
+        defined_param = dp.match_name(ml_attr_name)
         if defined_param is None:
-            raise ValueError("encode() cannot classify '{}' attribute name.".format(obj_attr_name))
-        if not isinstance(obj_attr_value, list):
-            ml_pairs.append((defined_param.key, obj_attr_value))
-        else:
-            for obj_attr_item in obj_attr_value:
+            raise ValueError("encode() cannot classify '{}' attribute name.".format(ml_attr_name))
+        if isinstance(ml_attr_value, list):
+            for obj_attr_item in ml_attr_value:
                 ml_pairs.append((defined_param.key, obj_attr_item))
-    return "magnet:?{}".format(urllib.parse.urlencode(ml_pairs, safe=':%+'))
+        elif ml_attr_name != "exact_topic":
+            ml_pairs.append((defined_param.key, ml_attr_value))
+        else:
+            ml_str += "xt=urn:btih:" + ml_attr_value.split("urn:btih:")[1] + '&'
+    return ml_str + urllib.parse.urlencode(ml_pairs) #, safe=':%+'))

@@ -1,24 +1,26 @@
-from torrentclient.torrent import Torrent
-from torrentclient.magnetlink import MagnetLink
+from torrentclient.mlcode.magnetlink import MagnetLink
+from torrentclient.mlcode.encode import encode
 
 
-def magnet2torrent(magnet_link: MagnetLink) -> Torrent:
+def magnet2torrent(magnet_link: MagnetLink):
+    raw_ml = encode(magnet_link)
     ml_str = ""
     for tracker in magnet_link.address_tracker:
         ml_str += '&tr=' + tracker
-    """
+    filename = "meta-" + magnet_link.exact_topic.split("urn:btih:")[1] + ".torrent"
+    with open(filename, 'w+') as f:
+        bencoded_ml = u'd10:magnet-uri' + str(len(raw_ml)) + u':' + raw_ml + u'e'
+        f.write(bencoded_ml)
 
-    # TODO: URN parser in separate class?
-    #Create the torrent file name
-    magnetName = magnetLink[magnetLink.find("btih:") + 1:magnetLink.find("&")]
-    magnetName = magnetName.replace('tih:','')
-    torrentfilename = 'meta-' + magnetName + '.torrent'
-    # TODO: pass all these parameters to Torrent class
-    # Write the magnet link to the torrent file
-    with open(torrentfilename, 'w') as o:
-        linkstr = u'd10:magnet-uri' + str(len(magnetLink)) + u':' + magnetLink + u'e'
-        linkstr = linkstr.encode('utf8')
-        o.write(linkstr)
-    """
 
-    return Torrent
+magnet2torrent(MagnetLink(
+        display_name="Eminem - Lose Yourself [Single - 2012]",
+        exact_topic="urn:btih:440ab7cfe0d0c1d8bf515e1add4a26aebb321191",
+        address_tracker=[
+            "udp://tracker.leechers-paradise.org:6969",
+            "udp://tracker.openbittorrent.com:80",
+            "udp://open.demonii.com:1337",
+            "udp://tracker.coppersurfer.tk:6969",
+            "udp://exodus.desync.com:6969",
+        ],
+    ))

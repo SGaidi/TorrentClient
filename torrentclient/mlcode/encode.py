@@ -11,7 +11,7 @@ def encode(ml_obj: MagnetLink) -> str:
     """
     ml_pairs = []
     ml_str = "magnet:?"
-    for ml_attr_name, ml_attr_value in ml_obj.parameters.items():
+    for ml_attr_name, ml_attr_value in ml_obj.__dict__.items():
         defined_param = dp.match_name(ml_attr_name)
         if defined_param is None:
             raise ValueError("encode() cannot classify '{}' attribute name.".format(ml_attr_name))

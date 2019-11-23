@@ -1,3 +1,4 @@
+#TODO: add allowed types
 
 
 class DefineParam:

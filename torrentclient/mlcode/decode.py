@@ -2,7 +2,6 @@ import html
 import urllib.parse
 
 from torrentclient.mlcode.magnetlink import MagnetLink
-from torrentclient.mlcode.defineparam import DefineParam as dp
 
 
 def decode(magnet_link: str):
@@ -18,7 +17,7 @@ def decode(magnet_link: str):
             magnet_dict[key] = value[0]
     kwargs = {}
     for key, value in magnet_dict.items():
-        defined_param = dp.match_key(key)
+        defined_param = MagnetLink.dp.match_key(key)
         if defined_param is None:
             raise ValueError("decode() cannot classify '{}' param.".format(key))
         kwargs[defined_param.name] = value

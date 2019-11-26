@@ -1,7 +1,6 @@
 import urllib.parse
 
 from torrentclient.mlcode.magnetlink import MagnetLink
-from torrentclient.mlcode.defineparam import DefineParam as dp
 
 
 def encode(ml_obj: MagnetLink) -> str:
@@ -12,7 +11,7 @@ def encode(ml_obj: MagnetLink) -> str:
     ml_pairs = []
     ml_str = "magnet:?"
     for ml_attr_name, ml_attr_value in ml_obj.__dict__.items():
-        defined_param = dp.match_name(ml_attr_name)
+        defined_param = MagnetLink.dp.match_name(ml_attr_name)
         if defined_param is None:
             raise ValueError("encode() cannot classify '{}' attribute name.".format(ml_attr_name))
         if isinstance(ml_attr_value, list):
@@ -22,4 +21,4 @@ def encode(ml_obj: MagnetLink) -> str:
             ml_pairs.append((defined_param.key, ml_attr_value))
         else:
             ml_str += "xt=urn:btih:" + ml_attr_value.split("urn:btih:")[1] + '&'
-    return ml_str + urllib.parse.urlencode(ml_pairs) #, safe=':%+'))
+    return ml_str + urllib.parse.urlencode(ml_pairs)

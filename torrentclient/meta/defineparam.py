@@ -1,6 +1,7 @@
 from typing import List, Tuple, Union
 #TODO: add mandatory/optional field
 #TODO: add allowed types
+#TODO: remove redundant parentheses in DefineParams() and use a dictionary instead
 
 
 class DefineParam:
@@ -33,11 +34,10 @@ DefineParamsArgs = List[Union[Tuple[str, str, str], Tuple[str, str]]]
 class DefineParams:
     """Meta class for mapping between parameter keys and attribute names"""
 
-    def __init__(self, define_params_args: DefineParamsArgs):
+    def extend(self, define_params_args: DefineParamsArgs):
         """
         :param define_params_args: list of 3-item or 2-item tuples of str
         """
-        self.define_params = []
         for define_param_args in define_params_args:
             if len(define_param_args) == 3:
                 self.define_params.append(DefineParam(*define_param_args))
@@ -48,6 +48,13 @@ class DefineParams:
                     "__init__() got invalid type of argument ({}), should be a list of 2-item or 3-item tuples.".format(
                         define_params_args
                     ))
+
+    def __init__(self, define_params_args: DefineParamsArgs):
+        """
+        :param define_params_args: list of 3-item or 2-item tuples of str
+        """
+        self.define_params = []
+        self.extend(define_params_args)
 
     def __doc__(self) -> str:
         return '\n'.join(":param {}: {}".format(define_param.name, define_param.doc)

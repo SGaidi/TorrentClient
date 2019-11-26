@@ -13,6 +13,7 @@ def decode(magnet_link: str):
     magnet_dict = urllib.parse.parse_qs(magnet_link.split('magnet:?')[1])
     for key, value in magnet_dict.items():
         # flatten one-item lists
+        #TODO: but why? is it really needed?
         if isinstance(value, list) and len(value) == 1:
             magnet_dict[key] = value[0]
     kwargs = {}

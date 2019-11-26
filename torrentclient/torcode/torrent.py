@@ -22,13 +22,17 @@ class Torrent(ParamClass):
     """
 
     def __init__(self, **kwargs):
-        super.__init__(*kwargs)
+        super(Torrent, self).__init__(**kwargs)
     __init__.__doc__ = dp.__doc__()
 
     @classmethod
     def from_file(cls, path: str):
         metadata = bencode.bdecode(open(path, 'r').read())
         return cls(**metadata)
+
+    def to_file(self, path: str):
+        with open(path, 'w+') as out:
+            out.write(bencode.bencode(self.__dict__))
 
 """
 hashcontents = bencode.bencode(metadata['info'])

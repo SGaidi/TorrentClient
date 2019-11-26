@@ -21,5 +21,5 @@ class MagnetLink(ParamClass):
     """
 
     def __init__(self, **kwargs):
-        super.__init__(*kwargs)
+        super(MagnetLink, self).__init__(**kwargs)
     __init__.__doc__ = dp.__doc__()

@@ -1,4 +1,4 @@
-from torrentclient.mlcode.defineparam import DefineParam, DefineParams
+from torrentclient.meta.defineparam import DefineParam, DefineParams
 
 
 def test_init():

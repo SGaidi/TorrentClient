@@ -1,26 +1,33 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
+#TODO: add mandatory/optional field
 #TODO: add allowed types
 
 
 class DefineParam:
     """Data class of a parameter attribute"""
 
-    def __init__(self, key: str, name: str, doc: str):
+    def __init__(self, key: str, name: str = None, doc: str = None):
         """
         :param key: parameter key in str
-        :param name: attribute name in a class
+        :param name: attribute name in a class, by default it is the same as the key
         :param doc: __doc__ string of a class attribute
         """
         self.key = key
-        self.name = name
         self.doc = doc
+        if name is None:
+            self.name = key
+        else:
+            self.name = name
+
+    def __repr__(self):
+        return "key=`{}`, name=`{}`, doc=`{}`".format(self.key, self.name, self.doc)
 
     def __eq__(self, other) -> bool:
         return isinstance(other, DefineParam) and \
             self.key == other.key and self.name == other.name
 
 
-DefineParamsArgs = List[Tuple[str, str, str]]
+DefineParamsArgs = List[Union[Tuple[str, str, str], Tuple[str, str]]]
 
 
 class DefineParams:
@@ -28,13 +35,23 @@ class DefineParams:
 
     def __init__(self, define_params_args: DefineParamsArgs):
         """
-        :param define_params_args: list of 3-item tuples of str
+        :param define_params_args: list of 3-item or 2-item tuples of str
         """
-        self.define_params = [DefineParam(*define_param_args) for define_param_args in define_params_args]
+        self.define_params = []
+        for define_param_args in define_params_args:
+            if len(define_param_args) == 3:
+                self.define_params.append(DefineParam(*define_param_args))
+            elif len(define_param_args) == 2:
+                self.define_params.append(DefineParam(key=define_param_args[0], doc=define_param_args[1]))
+            else:
+                raise TypeError(
+                    "__init__() got invalid type of argument ({}), should be a list of 2-item or 3-item tuples.".format(
+                        define_params_args
+                    ))
 
     def __doc__(self) -> str:
         return '\n'.join(":param {}: {}".format(define_param.name, define_param.doc)
-                         for define_param in self.define_params)
+                         for define_param in self.define_params if define_param.doc is not None)
 
     def match_key(self, key: str) -> DefineParam:
         """

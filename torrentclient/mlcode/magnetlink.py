@@ -19,3 +19,7 @@ class MagnetLink(ParamClass):
     Definitions of all of MagnetLink's attributes
     Reference: https://en.wikipedia.org/wiki/Magnet_URI_scheme
     """
+
+    def __init__(self, **kwargs):
+        super.__init__(*kwargs)
+    __init__.__doc__ = dp.__doc__()

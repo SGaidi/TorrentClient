@@ -21,6 +21,10 @@ class Torrent(ParamClass):
     Reference: https://wiki.theory.org/index.php/BitTorrentSpecification#Metainfo_File_Structure
     """
 
+    def __init__(self, **kwargs):
+        super.__init__(*kwargs)
+    __init__.__doc__ = dp.__doc__()
+
     @classmethod
     def from_file(cls, path: str):
         metadata = bencode.bdecode(open(path, 'r').read())
@@ -41,5 +45,3 @@ params = {'xt': 'urn:btih:%s' % b32hash,
     'tr': metadata['announce'],
     'xl': metadata['info']['length']}
 """
-
-print(Torrent.__init__.__doc__)

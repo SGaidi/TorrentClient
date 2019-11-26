@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 
 
 class DefineParam:
-    """Data class of a parameter attribute"""
+    """Meta class of a parameter attribute"""
 
     def __init__(self, key: str, name: str = None, doc: str = None):
         """
@@ -31,7 +31,7 @@ DefineParamsArgs = List[Union[Tuple[str, str, str], Tuple[str, str]]]
 
 
 class DefineParams:
-    """Mapping class between parameter keys and attribute names"""
+    """Meta class for mapping between parameter keys and attribute names"""
 
     def __init__(self, define_params_args: DefineParamsArgs):
         """

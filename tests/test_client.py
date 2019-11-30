@@ -1,5 +1,5 @@
 from torrentclient.client import Client
-from torrentclient.torrent import Torrent
+from torrentclient.torcode.torrent import Torrent
 
 
 def test_client():

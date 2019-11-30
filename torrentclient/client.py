@@ -1,4 +1,4 @@
-from torrentclient.torrent import Torrent
+from torrentclient.torcode.torrent import Torrent
 
 
 class Client:

@@ -2,4 +2,10 @@ udp://tracker.leechers-paradise.org:6969
 udp://tracker.openbittorrent.com:80
 udp://open.demonii.com:1337
 udp://tracker.coppersurfer.tk:6969
-udp://exodus.desync.com:6969"
+udp://exodus.desync.com:6969
+udp://tracker.yoshi210.com:6969
+udp://tracker.internetwarriors.net:1337
+udp://tracker.pirateparty.gr:6969
+http://explodie.org:6969/
+http://torrent.nwps.ws
+udp://tracker.cyberia.is:6969

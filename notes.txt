@@ -1,0 +1,6 @@
+torf - generates torrent files from content
+https://torf.readthedocs.io/
+
+bencode - converts bencoded torrent files from and to meaningful data in a dictionary
+
+mlcode - converts magnet-link from and to meaningful data in dictionary

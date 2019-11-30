@@ -1,6 +1,10 @@
 from torrentclient.mlcode.magnetlink import MagnetLink
 from torrentclient.mlcode.encode import encode
-
+# see: http://dan.folkes.me/2012/04/converting-a-magnet-link-into-a-torrent/
+# params = {'xt': 'urn:btih:%s' % b32hash,
+#     'dn': metadata['info']['name'],
+#     'tr': metadata['announce'],
+#     'xl': metadata['info']['length']}
 
 def magnet2torrent(magnet_link: MagnetLink):
     raw_ml = encode(magnet_link)

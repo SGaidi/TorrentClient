@@ -1,11 +1,20 @@
 import argparse
 
-from torrentclient.client import Client
-from torrentclient.torrent import Torrent
+#from torrentclient.client import Client
 
 
-def add(path: str):
-    Client().add(Torrent(path))
+def callback(torrent, filepath, pieces_done, pieces_total):
+    print(f'{pieces_done/pieces_total*100:3.0f} % done')
+
+
+def add(args):
+    import os
+    path = args.path
+    if path.endswith(".torrent"):
+        from torrentclient.client.get import get_content
+        get_content(torrent_path=path)
+    else:
+        print("content file")
 
 
 def remove(torrent: str):
@@ -25,10 +34,11 @@ def main():
     parser_remove = subparsers.add_parser('remove', help='remove an existing torrent')
     parser_remove.add_argument('torrent', help='torrent ID or name')
     parser_remove.set_defaults(func=remove)
-    parser_list = parser.add_subparsers('list', help='list all torrents or a specific torrent')
+    parser_list = subparsers.add_parser('list', help='list all torrents or a specific torrent')
     parser_list.add_argument('torrent', nargs='?', default=None)
     parser_list.set_defaults(func=list)
     args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__": main()

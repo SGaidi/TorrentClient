@@ -3,12 +3,7 @@ import argparse
 #from torrentclient.client import Client
 
 
-def callback(torrent, filepath, pieces_done, pieces_total):
-    print(f'{pieces_done/pieces_total*100:3.0f} % done')
-
-
 def add(args):
-    import os
     path = args.path
     if path.endswith(".torrent"):
         from torrentclient.client.get import get_content
@@ -38,7 +33,10 @@ def main():
     parser_list.add_argument('torrent', nargs='?', default=None)
     parser_list.set_defaults(func=list)
     args = parser.parse_args()
-    args.func(args)
+    if hasattr(args, "func"):
+        args.func(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__": main()

@@ -1,7 +1,6 @@
 import re
-import os
-import logging
 import bencode
+import logging
 from typing import List
 
 from torrentclient.client.tracker import Tracker
@@ -55,6 +54,7 @@ class RequestPeers:
 
     def _create_request(self):
         """set all standard parameters for request"""
+        import os
         import hashlib
         # TODO: should be part of custom Torrent class
         bcode = bencode.bread(self.torrent_path)

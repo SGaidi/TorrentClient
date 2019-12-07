@@ -20,3 +20,19 @@ def get_content(torrent_path: str):
         except RequestPeers.Exception as e:
             RequestPeers.logger.warning("{} failed to get peers: {}".format(rp, e))
             continue
+
+        """
+        print("###\n###".join(str(file) for file in torrent.files))
+        print(torrent.pieces)
+        """
+
+        for peer in peers:
+            print(peer)
+            try:
+                peer.handshake(torrent_path)
+            except RuntimeError as e:
+                peer.logger.error(e)
+
+        # TODO: check / handshake peers
+
+        # TODO: start by KISS - go over each piece, try to get it from any free peer

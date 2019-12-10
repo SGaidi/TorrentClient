@@ -1,4 +1,3 @@
-import re
 import bencode
 import logging
 from typing import List
@@ -13,8 +12,7 @@ class RequestPeers:
 
     # TODO: change back to 6889
     LOCAL_PORTS = list(range(6881, 6882)) #6889 + 1))
-    VALID_CONTENT_TYPES = [None, "text/plain", "text/plain; charset=utf-8", "application/octet-stream"]
-    PEERS_PATTERN = re.compile(r"(?P<left>.*)5:peers(?P<length>\d+):(?P<right>.*)$")
+
     # TODO: update trackers interval
     # probably in a different class
     TRACKER_INTERVALS = {}
@@ -59,8 +57,7 @@ class RequestPeers:
         # TODO: should be part of custom Torrent class
         bcode = bencode.bread(self.torrent_path)
         self.hash_info = hashlib.sha1(bencode.bencode(bcode['info'])).digest()
-
-        self.peer_id = "-{}{}{}-".format('BT', '1000', str(os.getpid()).zfill(12))
+        self.peer_id = "-{}{}-{}".format('BT', '1000', str(os.getpid()).zfill(12))
         if 'length' in bcode['info']:
             self.left = bcode['info']['length']
         else:
@@ -87,76 +84,9 @@ class RequestPeers:
             )
         except requests.exceptions.ConnectionError as e:
             raise RequestPeers.Exception("Could not send HTTP GET to {}: {}".format(self.tracker.url, e))
-        except Exception as e:
-            self.logger.debug(type(e).__name__)
-            raise e
-
-    def _check_response(self):
-        if self.response.status_code != 200:
-            raise RequestPeers.Exception("HTTP response status code {}".format(self.response.status_code))
-
-        if 'Content-Type' in self.response.headers and \
-                self.response.headers['Content-Type'] not in RequestPeers.VALID_CONTENT_TYPES:
-            raise RequestPeers.Exception("Invalid Content-Type ({}), not in {}".format(
-                self.response.headers.get('Content-Type', None), RequestPeers.VALID_CONTENT_TYPES))
-
-        try:
-            self.response.text
-        except UnicodeEncodeError:
-            self.logger.warning("Wrong encoding of response ({}). Apparent encoding ({}).".format(
-                self.response.encoding,
-                self.response.apparent_encoding
-            ))
-            if self.response.encoding == self.response.apparent_encoding:
-                raise RequestPeers.Exception("Could not determine encoding of ({})'".format(self.response.content))
-            self.response.encoding = self.response.apparent_encoding
-            try:
-                self.response.text
-            except UnicodeEncodeError as e:
-                raise RequestPeers.Exception("Could not encode ({}) with apparent encoding ({})".format(
-                    self.response.content,
-                ))
-
-    def _parse_peers(self):
-        match = RequestPeers.PEERS_PATTERN.match(self.response.text)
-        if not match:
-            raise RequestPeers.Exception("Could not match response content ({}) with pattern ({})".format(
-                self.response.content, self.PEERS_PATTERN))
-
-        left_response = match.group("left")
-        peers_len = int(match.group("length"))
-        peers = match.group("right")[:peers_len].encode()
-        right_response = match.group("right")[peers_len:]
-        self.logger.debug("left_response={}\npeers_len={}\npeers={}\nright_response={}".format(
-            left_response, peers_len, peers, right_response,
-        ))
-        peerless_response = left_response + right_response
-        response = bencode.bdecode(peerless_response.encode())
-        if "failure reason" in response:
-            raise RequestPeers.Exception("Failure in response text: {}".format(response["failure reason"]))
-        if "warning message" in response:
-            self.logger.warning("Warning in response text: {}".format(response["warning message"]))
-        #TODO: handle interval in response
-        self.logger.debug("response={}".format(response))
-
-        if len(peers) % 6 != 0:
-            self.logger.warning("Peers length is not divisible by 6 - omitting last bytes")
-            peers = peers[:6*(len(peers)//6)]
-            self.logger.debug(len(peers))
-
-        # TODO: add support for dictionary mode
-        self.peers = []
-        for index in range(0, len(peers), 6):
-            peer_ip_bytes = peers[index:index+4]
-            peer_ip = ".".join(str(octet) for octet in peer_ip_bytes)
-            peer_port = int.from_bytes(peers[index+4:index+6], byteorder="big")
-            self.peers.append(Peer(peer_ip, peer_port))
-        self.logger.debug("peers={}".format(", ".join(str(peer) for peer in self.peers)))
 
     def get(self) -> List[Peer]:
-        """return a list of peers to get content according to the torrent file"""
+        """returns a list of peers to get content according to the torrent file"""
         self._create_request()
         self._send_request()
-        self._check_response()
-        self._parse_peers()
-        return self.peers
+        return self.response

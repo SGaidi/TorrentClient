@@ -3,7 +3,7 @@ import bencode
 import logging
 import requests
 
-from torrentclient.client.peer import Peer
+from torrentclient.client.peerinteract.peer import Peer
 
 
 class HandleResponse:

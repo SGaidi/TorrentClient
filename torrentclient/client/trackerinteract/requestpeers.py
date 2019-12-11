@@ -2,8 +2,8 @@ import bencode
 import logging
 from typing import List
 
-from torrentclient.client.tracker import Tracker
-from torrentclient.client.peer import Peer
+from torrentclient.client.trackerinteract.tracker import Tracker
+from torrentclient.client.peerinteract.peer import Peer
 
 
 class RequestPeers:

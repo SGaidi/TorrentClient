@@ -1,9 +1,10 @@
 from torf import Torrent
 
 from torrentclient.client.trackerinteract.tracker import Tracker
-from torrentclient.client.trackerinteract.requestpeers import RequestPeers
 from torrentclient.client.peerinteract.peer import Peer
+from torrentclient.client.trackerinteract.requestpeers import RequestPeers
 from torrentclient.client.trackerinteract.handleresponse import HandleResponse
+from torrentclient.client.peercode.handshake import PeerHandshake
 
 
 def get_content(torrent_path: str):
@@ -32,10 +33,11 @@ def get_content(torrent_path: str):
         # TODO: start by KISS - go over each piece, try to get it from any free peer
 
         for peer in peers:
+            hs = PeerHandshake(remote_peer=peer, torrent_path=torrent_path)
             try:
-                peer.handshake(torrent_path)
-            except Peer.Exception as e:
-                peer.logger.error("Failed to handshake {}: {}".format(peer, e))
+                hs.handshake()
+            except PeerHandshake.Exception as e:
+                hs.logger.error("Failed to handshake {}: {}".format(peer, e))
             else:
                 peer.get_single_file(torrent_path)
                 return

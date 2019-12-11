@@ -1,4 +1,3 @@
-import re
 import bencode
 import logging
 import requests
@@ -10,8 +9,6 @@ class HandleResponse:
     """Class for validating and extracting information from HTTP response from a Tracker"""
 
     VALID_CONTENT_TYPES = [None, "text/plain", "text/plain; charset=utf-8", "application/octet-stream"]
-    # TODO: find a way to encode and decode back
-    RESPONSE_PATTERN = re.compile(r"(?P<left>.*)5:peers(?P<length>\d+):(?P<right>.*)$")
 
     logger = logging.getLogger('handle-response')
 
@@ -39,8 +36,10 @@ class HandleResponse:
 
     def _decode_response(self):
         """tries to decode according to BitTorrent protocol"""
-        self.bresponse = bencode.bdecode(self.response.content)
-        self.logger.info("bresponse={}".format(self.bresponse))
+        try:
+            self.bresponse = bencode.bdecode(self.response.content)
+        except bencode.BencodeDecodeError as e:
+            raise HandleResponse.Exception("Could not bdecode response ({}): {}".format(self.response.content, e))
         if "failure reason" in self.bresponse:
             raise HandleResponse.Exception("Failure in response: {}".format(self.bresponse["failure reason"]))
         if "warning message" in self.bresponse:
@@ -60,11 +59,13 @@ class HandleResponse:
             raise HandleResponse.Exception(
                 "Invalid peers length ({}), not divisible by 6".format(len(self.bresponse['peers'])))
         for start_idx in range(0, len(self.bresponse['peers']), 6):
+            # TODO: try using: peer_ip = socket.inet_ntoa(self.bresponse['peers'][start_idx:start_idx+4])
             peer_ip = ".".join(str(octet) for octet in self.bresponse['peers'][start_idx:start_idx+4])
             try:
                 socket.inet_aton(peer_ip)
             except socket.error as e:
                 self.logger.warning("Invalid IP address ({}): {}".format(peer_ip, e))
+
             peer_port = int.from_bytes(self.bresponse['peers'][start_idx+4:start_idx+6], byteorder="big", signed=False)
             self.peers.append(Peer(peer_ip, peer_port))
 

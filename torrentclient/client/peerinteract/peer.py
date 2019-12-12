@@ -15,16 +15,27 @@ class Peer:
     class Exception(Exception):
         """An exception with remote peer occurred"""
 
-    def __init__(self, ip_address: str, port: str):
+    def __init__(self, ip_address: str, port: int):
+        """
+        :param ip_address: IPv4 address str
+        :param port: port number
+        """
+        import socket
+        try:
+            socket.inet_aton(ip_address)
+        except socket.error as e:
+            raise Peer.Exception("Invalid IP address ({}): {}".format(ip_address, e))
         self.ip_address = ip_address
+        if not isinstance(port, int):
+            raise Peer.Exception("Invalid port type ({}) - should be int".format(type(port).__name__))
         self.port = port
-        self.peer_id = None
+        self.id = None  # determined in PeerHandshake response
 
     def __str__(self):
         return "Peer({}:{})".format(self.ip_address, self.port)
 
     def __repr__(self):
-        return {'ip_address': self.ip_address, 'port': self.port}
+        return {'ip_address': self.ip_address, 'port': self.port, 'id': self.id}
 
     def get_single_file(self, torrent_path: str):
         from torrentclient.client.peercode.allmessages import Interested, UnChoke, RequestBlock

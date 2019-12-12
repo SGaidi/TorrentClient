@@ -1,10 +1,9 @@
 from torf import Torrent
 
 from torrentclient.client.trackerinteract.tracker import Tracker
-from torrentclient.client.peerinteract.peer import Peer
 from torrentclient.client.trackerinteract.requestpeers import RequestPeers
-from torrentclient.client.trackerinteract.handleresponse import HandleResponse
-from torrentclient.client.peercode.handshake import PeerHandshake
+from torrentclient.client.trackerinteract.responsepeers import ResponsePeers
+from torrentclient.client.peerinteract.handshake import PeerHandshake
 
 
 def get_content(torrent_path: str):
@@ -17,6 +16,7 @@ def get_content(torrent_path: str):
             Tracker.logger.warning("Invalid Tracker url ({}): {}".format(tracker_url[0], e))
             continue
 
+        # TODO: make it a torrent method / make tracker_url an argument to RequestPeers
         rp = RequestPeers(tracker, torrent_path)
         try:
             response = rp.get()
@@ -24,16 +24,16 @@ def get_content(torrent_path: str):
             RequestPeers.logger.warning("Failed with {}: {}".format(rp, e))
             continue
 
-        hp = HandleResponse(response)
+        hp = ResponsePeers(response)
         try:
             peers = hp.handle()
-        except HandleResponse.Exception as e:
-            HandleResponse.logger.warning("Failed to handle peers with {}: {}".format(hp, e))
+        except ResponsePeers.Exception as e:
+            ResponsePeers.logger.warning("Failed to handle peers with {}: {}".format(hp, e))
 
         # TODO: start by KISS - go over each piece, try to get it from any free peer
 
         for peer in peers:
-            hs = PeerHandshake(remote_peer=peer, torrent_path=torrent_path)
+            hs = PeerHandshake(peer=peer, torrent_path=torrent_path)
             try:
                 hs.handshake()
             except PeerHandshake.Exception as e:

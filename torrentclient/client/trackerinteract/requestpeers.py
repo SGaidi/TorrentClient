@@ -1,9 +1,7 @@
 import bencode
 import logging
-from typing import List
 
 from torrentclient.client.trackerinteract.tracker import Tracker
-from torrentclient.client.peerinteract.peer import Peer
 
 
 class RequestPeers:
@@ -85,7 +83,7 @@ class RequestPeers:
         except requests.exceptions.ConnectionError as e:
             raise RequestPeers.Exception("Could not send HTTP GET to {}: {}".format(self.tracker.url, e))
 
-    def get(self) -> List[Peer]:
+    def get(self):
         """returns a list of peers to get content according to the torrent file"""
         self._create_request()
         self._send_request()

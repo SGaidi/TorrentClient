@@ -25,6 +25,3 @@ class Tracker:
 
     def __str__(self):
         return "Tracker(url={})".format(self.url)
-
-    def __repr__(self):
-        return {'protocol': self.protocol, 'hostname': self.hostname, 'port': self.port}

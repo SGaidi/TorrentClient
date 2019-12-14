@@ -8,7 +8,7 @@ from torf import Torrent
 class Peer:
     """Data class of BitTorrent remote peer"""
 
-    LOCAL_PEER_ID = bytes("-{}{}-{}".format('BT', '1000', str(os.getpid()).zfill(12)), "utf-8")
+    LOCAL_PEER_ID = bytes("-{}{}-{}".format('SG', '1000', str(os.getpid()).zfill(12)), "utf-8")
 
     logger = logging.getLogger('peer')
 
@@ -34,14 +34,11 @@ class Peer:
     def __str__(self):
         return "Peer({}:{})".format(self.ip_address, self.port)
 
-    def __repr__(self):
-        return {'ip_address': self.ip_address, 'port': self.port, 'id': self.id}
-
-    def get_single_file(self, torrent_path: str):
+    def get_single_file(self, torrent: str):
         from torrentclient.client.peercode.allmessages import Interested, UnChoke, RequestBlock
         interested_message = Interested().create_message()
         unchoke_message = UnChoke().create_message()
-        torrent = Torrent.read(filepath=torrent_path)
+        torrent = Torrent.read(filepath=torrent)
         with open([file for file in torrent.files][0], "ab+") as out_file:
             self.logger.debug("include md5sum={}".format(torrent.include_md5))
             self.sock.send(interested_message)

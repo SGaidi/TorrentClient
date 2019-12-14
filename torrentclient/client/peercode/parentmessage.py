@@ -21,9 +21,6 @@ class PeerMessage:
     def __str__(self):
         return "PeerMessage(message_id={}, length={})".format(self.message_id, self.length)
 
-    def __repr__(self):
-        return {'message_id': self.message_id, 'length': self.length, 'payload': self.payload}
-
     @staticmethod
     def int_to_bytes(x: int) -> bytes:
         return x.to_bytes((x.bit_length() + 7) // 8, 'big')

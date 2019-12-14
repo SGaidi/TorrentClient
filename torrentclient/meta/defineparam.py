@@ -20,7 +20,7 @@ class DefineParam:
         else:
             self.name = name
 
-    def __repr__(self):
+    def __str__(self):
         return "key=`{}`, name=`{}`, doc=`{}`".format(self.key, self.name, self.doc)
 
     def __eq__(self, other) -> bool:

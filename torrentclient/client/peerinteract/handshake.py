@@ -1,7 +1,7 @@
 import socket
-import bencode
 import logging
 
+from torrentclient.torcode.mytorrent import MyTorrent
 from torrentclient.client.peerinteract.peer import Peer
 
 
@@ -22,25 +22,21 @@ class PeerHandshake:
     class Exception(Exception):
         """An exception with peer handshake"""
 
-    def __init__(self, peer: Peer, torrent_path: str):
+    def __init__(self, peer: Peer, torrent: MyTorrent):
         self.peer = peer
-        self.torrent_path = torrent_path
+        self.torrent = torrent
         # TODO: use `with socket...` in handshake method
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __str__(self):
-        return "PeerHandshake(peer={}, torrent_path={})".format(self.peer, self.torrent_path)
-
-    def __repr__(self):
-        return {'peer': self.peer, 'torrent_path': self.torrent_path, 'socket': self.socket}
+        return "PeerHandshake(peer={}, torrent={})".format(self.peer, self.torrent)
 
     def _create_message(self):
-        import hashlib
-        torrent_bcode = bencode.bread(self.torrent_path)
-        self.info_hash = hashlib.sha1(bencode.bencode(torrent_bcode['info'])).digest()
-        self.request = self.PSTR_LEN + self.PSTR + self.RESERVED + self.info_hash + Peer.LOCAL_PEER_ID
+        self.request = self.PSTR_LEN + self.PSTR + self.RESERVED + self.torrent.infohash + Peer.LOCAL_PEER_ID
 
     def _send_message(self):
+        self.logger.debug("Sending message")
+        self.socket.settimeout(5)
         try:
             self.socket.send(self.request)
         except (socket.timeout, ConnectionRefusedError) as e:
@@ -97,6 +93,7 @@ class PeerHandshake:
 
     def _validate_response(self):
         """raises an exception if the received handshake is not as expected"""
+        self.logger.debug("Receiving and validating response")
         self.peer_response = self.socket.recv(self.RESPONSE_BUFFER_SIZE)
         self._validate_length()
         self._validate_protocol()

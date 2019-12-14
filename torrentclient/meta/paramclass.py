@@ -27,7 +27,7 @@ class ParamClass:
             setattr(self, attr_name, attr_value)
     __init__.__doc__ = dp.__doc__
 
-    def __repr__(self):
+    def __str__(self):
         return "{}}:\n{}\n".format(self.__class__.__name__,
             '\n'.join("{}:{}".format(key, value) for key, value in self.__dict__.items()),
         )

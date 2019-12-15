@@ -27,7 +27,7 @@ class MyTorrent(Torrent):
     @property
     def infohash(self) -> bytes:
         import hashlib
-        return hashlib.sha1(bencode.bencode(self.metainfo['info'])).digest()
+        return hashlib.sha1(bencode.bencode(bencode.bread(self.path)['info'])).digest()
 
     @property
     def raw_hashes(self) -> bytes:
@@ -35,10 +35,17 @@ class MyTorrent(Torrent):
 
     @property
     def hashes(self):
-        """fix of hashes attribute in torf"""
-        return (self.raw_hashes[idx:idx+20] for idx in range(0, self.pieces))
+        """fix of hashes attribute in torf
+        and used list instead of generator"""
+        return [self.raw_hashes[idx:idx+20] for idx in range(0, self.pieces)]
 
     # TODO: instead of pieces
     @property
-    def sub_pieces_count(self) -> int:
+    def blocks_count(self) -> int:
         return len(self.raw_hashes) // 20
+
+    @property
+    def block_size(self) -> int:
+        import math
+        minimal_size = round(self.total_length / self.blocks_count)
+        return 2**math.ceil(math.log(minimal_size, 2))  # rounds up to highest 2**x value

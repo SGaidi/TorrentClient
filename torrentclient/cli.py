@@ -7,7 +7,7 @@ def add(args):
     path = args.path
     if path.endswith(".torrent"):
         from torrentclient.client.get import get_content
-        get_content(torrent=path)
+        get_content(torrent_path=path)
     else:
         print("content file")
 

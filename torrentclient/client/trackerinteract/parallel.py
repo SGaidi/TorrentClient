@@ -9,7 +9,6 @@ class Consumer(multiprocessing.Process):
         self.result_queue = result_queue
 
     def run(self):
-        proc_name = self.name
         while True:
             next_task = self.task_queue.get()
             if next_task is None:
@@ -33,11 +32,14 @@ class Task(object):
         return "Calling {} with {}".format(self.func, self.args)
 
 
-def map_parallel(func, args_list: list):
+def map_parallel(func, args_list: list, count: int = None):
     tasks = multiprocessing.JoinableQueue()
     results = multiprocessing.Queue()
 
-    num_consumers = multiprocessing.cpu_count() * 2
+    if count is None:
+        num_consumers = multiprocessing.cpu_count() * 2
+    else:
+        num_consumers = count
     consumers = [Consumer(tasks, results) for i in range(num_consumers)]
     for w in consumers:
         w.start()

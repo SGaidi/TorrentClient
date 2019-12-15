@@ -67,11 +67,16 @@ class HandleResponse:
 
     def _parse_peers(self):
         """tries parsing peers from response using the 2 supported models"""
+        self.logger.debug("Parsing peers from: {}".format(self.response.content))
+        if 'peers' not in self.bresponse:
+            raise HandleResponse.Exception("No 'peers' in bencoded response: {}".format(self.bresponse))
         try:
             self._parse_peers_dict()
-        except HandleResponse.Exception as e:
+        except HandleResponse.Exception:
             self.logger.debug("Assuming peers in response are in bytes mode")
             self._parse_peers_bytes()
+        else:
+            raise HandleResponse.Exception("Peers in dictionary mode - not supported")
         self.logger.debug("peers=[{}]".format(", ".join(str(peer) for peer in self._peers)))
 
     def get_peers(self):

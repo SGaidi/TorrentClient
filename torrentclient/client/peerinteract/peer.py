@@ -26,10 +26,14 @@ class Peer:
         except socket.error as e:
             raise Peer.Exception("Invalid IP address ({}): {}".format(ip_address, e))
         self.ip_address = ip_address
-        if not isinstance(port, int):
-            raise Peer.Exception("Invalid port type ({}) - should be int".format(type(port).__name__))
-        self.port = port
+        try:
+            self.port = int(port)
+        except TypeError:
+            raise Peer.Exception("Invalid port type ({}) - should be convertible to int".format(type(port).__name__))
         self.id = None  # determined in PeerHandshake response
+
+    def __eq__(self, other):
+        return isinstance(other, Peer) and self.ip_address == other.ip_addres and self.port == other.port
 
     def __str__(self):
         return "Peer({}:{})".format(self.ip_address, self.port)

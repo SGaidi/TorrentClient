@@ -3,6 +3,7 @@ import logging
 
 from torrentclient.torcode.mytorrent import MyTorrent
 from torrentclient.client.peerinteract.peer import Peer
+from torrentclient.client.peerinteract.connection import PeerConnection
 
 
 class PeerHandshake:
@@ -25,8 +26,6 @@ class PeerHandshake:
     def __init__(self, peer: Peer, torrent: MyTorrent):
         self.peer = peer
         self.torrent = torrent
-        # TODO: use `with socket...` in handshake method
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __str__(self):
         return "PeerHandshake(peer={}, torrent={})".format(self.peer, self.torrent)
@@ -35,11 +34,17 @@ class PeerHandshake:
         self.request = self.PSTR_LEN + self.PSTR + self.RESERVED + self.torrent.infohash + Peer.LOCAL_PEER_ID
 
     def _send_message(self):
-        self.logger.debug("Sending message")
-        self.socket.settimeout(5)
+        self.logger.debug("Trying to send initial handshake to {}".format(self.peer))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(10)
+        try:
+            self.socket.connect((self.peer.ip_address, self.peer.port))
+        except Exception as e:
+            raise PeerHandshake.Exception("Could not connect to {}: {}".format(self.peer, e))
         try:
             self.socket.send(self.request)
-        except (socket.timeout, ConnectionRefusedError) as e:
+        except Exception as e:
+            self.socket.close()
             raise PeerHandshake.Exception("Could not send message to {}: {}".format(self.peer, e))
 
     @property
@@ -52,7 +57,7 @@ class PeerHandshake:
 
     @property
     def PEER_ID_BYTE(self) -> int:
-        return self.INFO_HASH_BYTE + len(self.info_hash)
+        return self.INFO_HASH_BYTE + len(self.torrent.infohash)
 
     def _validate_length(self):
         if len(self.peer_response) < len(self.request):
@@ -74,22 +79,26 @@ class PeerHandshake:
 
     def _validate_info_hash(self):
         self.response_info_hash = self.peer_response[self.INFO_HASH_BYTE:self.PEER_ID_BYTE]
-        if self.response_info_hash != self.info_hash:
+        if self.response_info_hash != self.torrent.infohash:
             raise Peer.Exception(
-                "{}'s hash info ({}) does not match ours ({})".format(
-                    self.peer, self.response_info_hash, self.info_hash))
+                "{}'s info hash ({}) does not match ours ({})".format(
+                    self.peer, self.response_info_hash, self.torrent.infohash))
 
     def _validate_peer_id(self):
         self.peer.peer_id = self.peer_response[self.PEER_ID_BYTE:]
-        if self.PEER_ID_BYTE + 20 == len(self.peer_response):
+        """
+        if self.PEER_ID_BYTE + 20 != len(self.peer_response):
             raise PeerHandshake.Exception("Invalid peer_id length ({}) from {}".format(
-                len(self.peer_response) - self.PEER_ID_BYTE - 20,
+                len(self.peer_response) - self.PEER_ID_BYTE,
                 self.peer,
             ))
         # TODO: used only in dictionary mode where compact=0?
         # if self.peer.peer_id != peer_id:
         #    raise PeerHandshake.Exception(
-        #        "{}'s peer id ({}) does not match ours ({})".format(self.peer, response_peer_id, peer_id))
+        #        "{}'s peer id ({}) does not match peer_id from tracker ({})".format(
+        #           self.peer, response_peer_id, peer_id
+        #           ))
+        """
 
     def _validate_response(self):
         """raises an exception if the received handshake is not as expected"""
@@ -101,8 +110,8 @@ class PeerHandshake:
         self._validate_info_hash()
         self._validate_peer_id()
 
-    def handshake(self) -> socket.socket:
-        """returns socket of established connection to remote peer"""
+    def handshake(self) -> PeerConnection:
+        """returns PeerConnection if handshake was successful"""
         try:
             self._create_message()
             self._send_message()
@@ -111,4 +120,4 @@ class PeerHandshake:
             self.socket.close()
             raise e
         else:
-            return self.socket
+            return PeerConnection(peer=self.peer, socket=self.socket)

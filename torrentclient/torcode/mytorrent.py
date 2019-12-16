@@ -41,11 +41,11 @@ class MyTorrent(Torrent):
 
     # TODO: instead of pieces
     @property
-    def blocks_count(self) -> int:
+    def subpieces_count(self) -> int:
         return len(self.raw_hashes) // 20
 
     @property
-    def block_size(self) -> int:
+    def subpiece_size(self) -> int:
         import math
-        minimal_size = round(self.total_length / self.blocks_count)
+        minimal_size = round(self.total_length / self.subpieces_count)
         return 2**math.ceil(math.log(minimal_size, 2))  # rounds up to highest 2**x value

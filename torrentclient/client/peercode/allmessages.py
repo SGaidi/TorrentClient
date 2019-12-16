@@ -50,7 +50,14 @@ class HavePiece(PeerMessage):
         """
         if not isinstance(piece_index, int):
             raise super().Exception("piece_index must be a positive integer ({})".format(piece_index))
-        super().__init__(payload=self.int_to_bytes(piece_index))
+        super().__init__(payload=self.int_to_4bytes(piece_index))
+
+    @classmethod
+    def from_payload(cls, payload: bytes):
+        if len(payload) != 4:
+            raise super().Exception("Invalid payload length ({}), should be 4 bytes".format(len(payload)))
+        piece_index = int.from_bytes(payload, byteorder="big")
+        return cls(piece_index=piece_index)
 
 
 class PiecesBitField(PeerMessage):
@@ -67,6 +74,10 @@ class PiecesBitField(PeerMessage):
         """
         super().__init__(payload=bitfield)
 
+    @classmethod
+    def from_payload(cls, payload: bytes):
+        return cls(bitfield=payload)
+
 
 class RequestBlock(PeerMessage):
     """Request of a specific block from a piece"""
@@ -80,8 +91,17 @@ class RequestBlock(PeerMessage):
         :param block_length: block length in bytes, use of 2^14 (16KB) is recommended by BitTorrent specifications
         """
         super().__init__(
-            payload=self.int_to_bytes(piece_index) + self.int_to_bytes(block_begin) + self.int_to_bytes(block_length)
+            payload=self.int_to_4bytes(piece_index) + self.int_to_4bytes(block_begin) + self.int_to_4bytes(block_length)
         )
+
+    @classmethod
+    def from_payload(cls, payload: bytes):
+        if len(payload) != 12:
+            raise super().Exception("Invalid payload length ({}), should be 4 bytes".format(len(payload)))
+        piece_index = int.from_bytes(payload[:4], byteorder="big")
+        block_begin = int.from_bytes(payload[4:8], byteorder="big")
+        block_length = int.from_bytes(payload[8:12], byteorder="big")
+        return cls(piece_index, block_begin, block_length)
 
 
 class Block(PeerMessage):
@@ -95,7 +115,17 @@ class Block(PeerMessage):
         :param block_begin: zero-based byte offset within the piece
         :param block: block content
         """
-        super().__init__(payload=self.int_to_bytes(piece_index) + self.int_to_bytes(block_begin) + block)
+        self.piece_index = piece_index
+        self.block_begin = block_begin
+        self.block = block
+        super().__init__(payload=self.int_to_4bytes(piece_index) + self.int_to_4bytes(block_begin) + block)
+
+    @classmethod
+    def from_payload(cls, payload: bytes):
+        piece_index = int.from_bytes(payload[:4], byteorder="big")
+        block_begin = int.from_bytes(payload[4:8], byteorder="big")
+        block = payload[8:]
+        return cls(piece_index, block_begin, block)
 
 
 class CancelRequest(PeerMessage):
@@ -109,9 +139,21 @@ class CancelRequest(PeerMessage):
         :param block_begin: zero-based byte offset within the piece
         :param block_length: block length in bytes, use of 2^14 (16KB) is recommended by BitTorrent specifications
         """
+        self.piece_index = piece_index
+        self.block_begin = block_begin
+        self.block_length = block_length
         super().__init__(
-            payload=self.int_to_bytes(piece_index) + self.int_to_bytes(block_begin) + self.int_to_bytes(block_length)
+            payload=self.int_to_4bytes(piece_index) + self.int_to_4bytes(block_begin) + self.int_to_4bytes(block_length)
         )
+
+    @classmethod
+    def from_payload(cls, payload: bytes):
+        if len(payload) != 12:
+            raise super().Exception("Invalid payload length ({}), should be 12 bytes".format(len(payload)))
+        piece_index = int.from_bytes(payload[:4], byteorder="big")
+        block_begin = int.from_bytes(payload[4:8], byteorder="big")
+        block_length = int.from_bytes(payload[8:12], byteorder="big")
+        return cls(piece_index, block_begin, block_length)
 
 
 class Port(PeerMessage):
@@ -122,10 +164,22 @@ class Port(PeerMessage):
     MESSAGE_ID = 9
 
     def __init__(self, listen_port: int):
-        super.__init__(payload=self.int_to_bytes(listen_port))
+        self.listen_port = listen_port
+        super.__init__(payload=self.int_to_4bytes(listen_port))
+
+    @classmethod
+    def from_payload(cls, payload: bytes):
+        if len(payload) != 4:
+            raise super().Exception("Invalid payload length ({}), should be 4 bytes".format(len(payload)))
+        listen_port = int.from_bytes(payload[:4], byteorder="big")
+        return cls(listen_port)
 
 
 all_messages = [
     KeepAlive, Choke, UnChoke, Interested, NotInterested,
     HavePiece, PiecesBitField, RequestBlock, Block, CancelRequest, Port
 ]
+
+id_to_message = {}
+for message in all_messages:
+    id_to_message[message.MESSAGE_ID] = message

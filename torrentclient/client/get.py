@@ -63,13 +63,13 @@ def get_content(torrent_path: str):
 
     # TODO: remove:
     from torrentclient.client.peerinteract.peer import Peer
-    peers = [Peer(*(line.replace('\n', '').split(':'))) for line in open("ubuntu12_peers.txt", 'r').readlines()]
+    peers = [Peer(*(line.replace('\n', '').split(':'))) for line in open("ubuntu18_peers.txt", 'r').readlines()]
 
     peers_queue = queue.Queue()
 
     # TODO: remove:
-    #with open("ubuntu12_peers.txt", "w+") as out:
-    #    out.write("\n".join("{}:{}".format(peer.ip_address, peer.port) for peer in peers))
+    #with open("ubuntu18_peers.txt", "w+") as out:
+    #   out.write("\n".join("{}:{}".format(peer.ip_address, peer.port) for peer in peers))
 
     for peer in peers:
         peers_queue.put(peer)
@@ -80,8 +80,8 @@ def get_content(torrent_path: str):
     while piece_idx < torrent.pieces and connection is not None:
         try:
             piece = GetPiece(peer_connection=connection, torrent=torrent, piece_idx=piece_idx).get()
-        except GetPiece.Exception as e:
-            GetPiece.logger.error("Failed to get piece #{} with {}".format(piece_idx, connection))
+        except (GetPiece.Exception, PeerConnection.Exception) as e:
+            GetPiece.logger.error("Failed to get piece #{} with {}: {}".format(piece_idx, connection, e))
             connection.socket.close()
             connection = next_connected_peer(peers_queue, torrent)
         else:

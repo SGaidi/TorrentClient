@@ -36,7 +36,6 @@ class PeerHandshake:
     def _send_message(self):
         self.logger.debug("Trying to send initial handshake to {}".format(self.peer))
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(10)
         try:
             self.socket.connect((self.peer.ip_address, self.peer.port))
         except Exception as e:
@@ -86,24 +85,21 @@ class PeerHandshake:
 
     def _validate_peer_id(self):
         self.peer.peer_id = self.peer_response[self.PEER_ID_BYTE:]
+        if len(self.peer.peer_id) != 20:
+            self.logger.warning("peer_id ({}) length {}".format(self.peer.peer_id, len(self.peer.peer_id)))
         """
-        if self.PEER_ID_BYTE + 20 != len(self.peer_response):
-            raise PeerHandshake.Exception("Invalid peer_id length ({}) from {}".format(
-                len(self.peer_response) - self.PEER_ID_BYTE,
-                self.peer,
-            ))
         # TODO: used only in dictionary mode where compact=0?
-        # if self.peer.peer_id != peer_id:
-        #    raise PeerHandshake.Exception(
-        #        "{}'s peer id ({}) does not match peer_id from tracker ({})".format(
-        #           self.peer, response_peer_id, peer_id
-        #           ))
+        if self.peer.peer_id != peer_id:
+           raise PeerHandshake.Exception(
+               "{}'s peer id ({}) does not match peer_id from tracker ({})".format(
+                    self.peer, response_peer_id, peer_id
+                ))
         """
 
     def _validate_response(self):
         """raises an exception if the received handshake is not as expected"""
-        self.logger.debug("Receiving and validating response")
-        self.peer_response = self.socket.recv(self.RESPONSE_BUFFER_SIZE)
+        self.logger.debug("Validating response handshake")
+        self.peer_response = self.socket.recv(len(self.request))
         self._validate_length()
         self._validate_protocol()
         self._validate_reserved()

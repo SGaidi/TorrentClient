@@ -40,8 +40,8 @@ class Peer:
 
     def get_single_file(self, torrent: str):
         from torrentclient.client.peercode.allmessages import Interested, UnChoke, RequestBlock
-        interested_message = Interested().create_message()
-        unchoke_message = UnChoke().create_message()
+        interested_message = Interested().create()
+        unchoke_message = UnChoke().create()
         torrent = Torrent.read(filepath=torrent)
         with open([file for file in torrent.files][0], "ab+") as out_file:
             self.logger.debug("include md5sum={}".format(torrent.include_md5))
@@ -60,7 +60,7 @@ class Peer:
                 for begin_bytes in range(0, torrent.piece_size-block_length, block_length):
                     request_message = RequestBlock(
                         piece_index=piece_idx, block_begin=begin_bytes, block_length=block_length
-                    ).create_message()
+                    ).create()
                     self.sock.send(request_message)
                     try:
                         peer_response = self.sock.recv(5 + block_length)

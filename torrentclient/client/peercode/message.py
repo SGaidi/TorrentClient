@@ -19,17 +19,17 @@ class PeerMessage:
         self.length = len(self.message_id + self.payload).to_bytes(4, byteorder="big")  # 4 bytes
 
     def __str__(self):
-        return "PeerMessage(message_id={}, length={}, payload={})".format(self.message_id, self.length, self.payload)
+        return "PeerMessage(message_id={}, length={})".format(self.message_id, self.length)
 
     @property
     def MESSAGE_ID(self) -> int:
-        raise NotImplementedError("MESSAGE_ID must be specified in child class ({}) of ParetMessage".format(
+        raise NotImplementedError("MESSAGE_ID must be specified in child class ({}) of ParentMessage".format(
             self.__class__.__str__()
         ))
 
     @staticmethod
-    def int_to_bytes(x: int) -> bytes:
-        return x.to_bytes((x.bit_length() + 7) // 8, 'big')
+    def int_to_4bytes(x: int) -> bytes:
+        return x.to_bytes(length=4, byteorder="big", signed=False)
 
-    def create_message(self) -> bytes:
+    def create(self) -> bytes:
         return self.length + self.message_id + self.payload

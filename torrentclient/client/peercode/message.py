@@ -19,7 +19,11 @@ class PeerMessage:
         self.length = len(self.message_id + self.payload).to_bytes(4, byteorder="big")  # 4 bytes
 
     def __str__(self):
-        return "PeerMessage(message_id={}, length={})".format(self.message_id, self.length)
+        return "{}(MESSAGE_ID={}, length={})".format(
+            self.__class__.__name__,
+            self.MESSAGE_ID,
+            len(self.message_id + self.payload),
+        )
 
     @property
     def MESSAGE_ID(self) -> int:

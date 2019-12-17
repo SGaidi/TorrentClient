@@ -48,9 +48,13 @@ class HavePiece(PeerMessage):
         """
         :param piece_index: zero-based index of a piece that has just been downloaded and verified via the hash
         """
+        self.piece_index = piece_index
         if not isinstance(piece_index, int):
             raise super().Exception("piece_index must be a positive integer ({})".format(piece_index))
         super().__init__(payload=self.int_to_4bytes(piece_index))
+
+    def __str__(self):
+        return "HavePiece(piece_index={})".format(self.piece_index)
 
     @classmethod
     def from_payload(cls, payload: bytes):
@@ -72,7 +76,11 @@ class PiecesBitField(PeerMessage):
             where the high bit in the first byte corresponds to piece index 0.
             spare bits at the end are set to zero.
         """
+        self.bitfield = bitfield
         super().__init__(payload=bitfield)
+
+    def __str__(self):
+        return "PiecesBitField(bitfield={})".format(self.bitfield)
 
     @classmethod
     def from_payload(cls, payload: bytes):
@@ -90,8 +98,18 @@ class RequestBlock(PeerMessage):
         :param block_begin: zero-based byte offset within the piece
         :param block_length: block length in bytes, use of 2^14 (16KB) is recommended by BitTorrent specifications
         """
+        self.piece_index = piece_index
+        self.block_begin = block_begin
+        self.block_length = block_length
         super().__init__(
             payload=self.int_to_4bytes(piece_index) + self.int_to_4bytes(block_begin) + self.int_to_4bytes(block_length)
+        )
+
+    def __str__(self):
+        return "RequestBlock(piece_index={}, block_begin={}, block_length={})".format(
+            self.piece_index,
+            self.block_begin,
+            self.block_length,
         )
 
     @classmethod
@@ -120,6 +138,9 @@ class Block(PeerMessage):
         self.block = block
         super().__init__(payload=self.int_to_4bytes(piece_index) + self.int_to_4bytes(block_begin) + block)
 
+    def __str__(self):
+        return "Block(piece_index={}, block_begin={})".format(self.piece_index, self.block_begin)
+
     @classmethod
     def from_payload(cls, payload: bytes):
         piece_index = int.from_bytes(payload[:4], byteorder="big")
@@ -146,6 +167,13 @@ class CancelRequest(PeerMessage):
             payload=self.int_to_4bytes(piece_index) + self.int_to_4bytes(block_begin) + self.int_to_4bytes(block_length)
         )
 
+    def __str__(self):
+        return "CancelRequest(piece_index={}, block_begin={}, block_length={})".format(
+            self.piece_index,
+            self.block_begin,
+            self.block_length,
+        )
+
     @classmethod
     def from_payload(cls, payload: bytes):
         if len(payload) != 12:
@@ -166,6 +194,9 @@ class Port(PeerMessage):
     def __init__(self, listen_port: int):
         self.listen_port = listen_port
         super.__init__(payload=self.int_to_4bytes(listen_port))
+
+    def __str__(self):
+        return "Port(listen_port={})".format(self.listen_port)
 
     @classmethod
     def from_payload(cls, payload: bytes):

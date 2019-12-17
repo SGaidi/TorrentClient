@@ -114,6 +114,6 @@ class PeerHandshake:
             self._validate_response()
         except Exception as e:
             self.socket.close()
-            raise e
+            raise PeerHandshake.Exception(e)
         else:
             return PeerConnection(peer=self.peer, socket=self.socket)

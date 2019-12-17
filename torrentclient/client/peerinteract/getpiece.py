@@ -1,3 +1,4 @@
+import socket
 import logging
 
 from torrentclient.client.peerinteract.connection import PeerConnection
@@ -7,6 +8,8 @@ from torrentclient.client.peercode.allmessages import RequestBlock
 
 class GetPiece:
     """Class for getting a torrent piece using a peer connection"""
+
+    RECEIVE_BLOCK_RETRY = 3
 
     logger = logging.getLogger('get-piece')
 
@@ -19,44 +22,43 @@ class GetPiece:
         self.piece_idx = piece_idx
 
     def get(self) -> bytes:
-        import hashlib
-        subpieces = []
-        subpieces_count = round(self.torrent.piece_size / self.torrent.subpiece_size)
-        self.logger.debug("self.torrent.piece_size={}, self.torrent.subpiece_size={}".format(
-            self.torrent.piece_size,
-            self.torrent.subpiece_size,
-        ))
-        for subpiece_idx, subpiece_start in enumerate(range(0, self.torrent.piece_size, self.torrent.subpiece_size)):
-            self.logger.debug("subpiece_idx={}, subpiece_start={}, ".format(
-                subpiece_idx,
-                subpiece_start,
-            ))
-            self.logger.info("Fetching sub-piece #{} of piece #{} of size {}".format(
-                subpiece_idx,
-                self.piece_idx,
-                self.torrent.subpiece_size,
-            ))
-            piece = b''
-            for block_idx, block_start in enumerate(range(0, self.torrent.subpiece_size, 2**14)):
-                self.logger.info("Requesting block #{} of sub-piece #{} of piece #{}".format(
-                    block_idx, subpiece_idx, self.piece_idx))
-                request = RequestBlock(
-                    piece_index=self.piece_idx, block_begin=block_start, block_length=2**14
-                ).create()
-                self.logger.debug("request={}".format(request))
-                self.peer_connection.send(request)
-                self.logger.info("Waiting for a block from {}".format(self.peer_connection.peer))
-                recv_blocks = self.peer_connection.expect_blocks()
-                if len(recv_blocks) == 0:
-                    raise GetPiece.Exception("Could not get block #{}".format(block_idx))
-                elif len(recv_blocks) > 1:
-                    self.logger.warning("Got more than one block - {}".format(
-                        ", ".join("#{}".format(block_msg.block_id) for block_msg in recv_blocks))
-                    )
-                self.logger.info(recv_blocks[0])
-                piece += recv_blocks[0].block
-            if hashlib.sha1(piece).digest() != \
-                    self.torrent.hashes[self.piece_idx*subpieces_count+subpiece_idx]:
-                raise GetPiece.Exception("Invalid SHA-1 hash of sub-piece #{} in piece #{}".format(subpiece_idx, self.piece_idx))
-            subpieces.append(piece)
-        return b''.join(subpieces)
+        recv_piece = b''
+        request = RequestBlock(
+            piece_index=self.piece_idx, block_begin=0, block_length=self.torrent.piece_size
+        ).create()
+        self.logger.debug("request={}".format(request))
+        self.peer_connection.send(request)
+        self.logger.info("Waiting for {} to send Block message".format(self.peer_connection.peer))
+        errors = []
+        for retry_count in range(1, self.RECEIVE_BLOCK_RETRY+1):
+            self.logger("Try #{} out of {}".format(retry_count, self.RECEIVE_BLOCK_RETRY))
+            try:
+                recv_block = self.peer_connection.expect_blocks()
+                if not recv_block:
+                    raise GetPiece.Exception("No Blocks received")
+                recv_block = recv_block[0].payload
+
+                # TODO: should be removed
+                while len(recv_piece) < self.torrent.piece_size and recv_block != b'':
+                    self.logger.info("Received {} bytes of block".format(len(recv_block)))
+                    omit_length = len(recv_piece)
+                    recv_piece += recv_block
+                    recv_block = self.peer_connection.socket.recv(self.torrent.piece_size-omit_length)
+
+                if len(recv_piece) < 2**14:
+                    raise GetPiece.Exception("Did not get all of piece #{} ({}) - length ({})".format(
+                        self.piece_idx,
+                        self.torrent.piece_size,
+                        len(recv_piece)
+                    ))
+            except GetPiece.Exception as e:
+                errors.append(e)
+            else:
+                break
+        """
+        if hashlib.sha1(piece).digest() != \
+            self.torrent.hashes[self.piece_idx*subpieces_count+subpiece_idx]:
+            raise GetPiece.Exception("Invalid SHA-1 hash of sub-piece #{} in piece #{}".format(subpiece_idx, self.piece_idx))
+        """
+        # TODO: check hashes!!!
+        return recv_piece

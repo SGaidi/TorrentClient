@@ -77,6 +77,7 @@ def get_content(torrent_path: str):
     connection = next_connected_peer(peers_queue, torrent)
     pieces = []
     piece_idx = 0
+    GetPiece.logger.info("Trying to get {} pieces".format(torrent.pieces))
     while piece_idx < torrent.pieces and connection is not None:
         try:
             piece = GetPiece(peer_connection=connection, torrent=torrent, piece_idx=piece_idx).get()
@@ -85,9 +86,13 @@ def get_content(torrent_path: str):
             connection.socket.close()
             connection = next_connected_peer(peers_queue, torrent)
         else:
+            GetPiece.logger.info("Successfully obtained piece #{} with {}".format(piece_idx, connection))
             pieces.append(piece)
             piece_idx += 1
     if connection is not None:
         connection.socket.close()
+    with open("result.iso", "wb+") as out:
+        out.write(b''.join(pieces))
+    print(pieces)
     if len(pieces) != torrent.pieces:
         raise RuntimeError("Could not get all pieces of {}! Got only {}".format(torrent.name, len(pieces)))

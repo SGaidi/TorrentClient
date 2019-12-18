@@ -1,4 +1,4 @@
-from torrentclient.client.peercode.message import PeerMessage
+from torrentclient.peercode.message import PeerMessage
 
 
 # basic messages

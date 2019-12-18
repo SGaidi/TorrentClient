@@ -1,11 +1,10 @@
-import socket
 import logging
 import traceback
 from typing import List
 
-from torrentclient.client.peerinteract.peer import Peer
-from torrentclient.client.peercode.message import PeerMessage
-from torrentclient.client.peercode.allmessages import KeepAlive, Choke, UnChoke, Interested, \
+from torrentclient.peerinteract.peer import Peer
+from torrentclient.peercode.message import PeerMessage
+from torrentclient.peercode.allmessages import KeepAlive, Choke, UnChoke, Interested, \
     NotInterested, RequestBlock, Block, CancelRequest, Port, id_to_message
 
 
@@ -14,6 +13,8 @@ class PeerConnection:
 
     LENGTH_BYTES = 4
     MESSAGE_ID_BYTES = 1
+
+    BUFFER_SIZE = 1024
 
     logger = logging.getLogger('peer-connection')
 
@@ -38,22 +39,22 @@ class PeerConnection:
         return "PeerConnection(peer={})".format(self.peer)
 
     def _recv(self, buffer_size: int) -> bytes:
-        self.socket.settimeout(15)
+        #self.socket.send(self.keepalive_message)
         try:
             return self.socket.recv(buffer_size)
         except Exception as e:
-            self.socket.settimeout(socket.getdefaulttimeout())
             self.socket.close()
-            raise PeerConnection.Exception("{} Failed to read from socket: {}".format(self, e))
+            raise PeerConnection.Exception("Failed to read from socket: {}".format(e))
 
     def _read_missing_bytes(self, missing_count: int):
         """tries reading `missing_count` bytes from socket"""
         missing_bytes = b''
         while len(missing_bytes) < missing_count:
             recv_bytes = self._recv(missing_count)
+            self.logger.info("Received {} Block bytes".format(len(recv_bytes)))
             if recv_bytes == b'':
-                raise PeerConnection.Exception("Expected {} more bytes from {} and did not receive them".format(
-                    missing_count, self.peer))
+                raise PeerConnection.Exception("Expected {} more bytes and did not receive them".format(
+                    missing_count))
             missing_bytes += recv_bytes
         self.response += missing_bytes
 
@@ -67,9 +68,10 @@ class PeerConnection:
             self.logger.debug("Message length ({}) is higher than current length in buffer ({})".format(
                 self.length, len(self.response) - self.idx
             ))
-            self.response += self._read_missing_bytes(self.length + self.idx - len(self.response))
+            self._read_missing_bytes(self.length + self.idx - len(self.response))
 
     def _determine_message_type(self):
+        """messages factory-like method"""
         if self.length == 0:
             self.message = KeepAlive()
         else:
@@ -82,19 +84,19 @@ class PeerConnection:
                 # All messages with id only and no payload
                 if self.length != self.MESSAGE_ID_BYTES:
                     raise PeerMessage.Exception("{} messages should be of length 1 ({})".format(
-                        message_cls, self.length
+                        type(message_cls).__name__, self.length
                     ))
                 self.message = message_cls()
             else:
                 self.message = message_cls.from_payload(payload)
 
     def _parse_response(self) -> List[PeerMessage]:
-        """factory-like method - returns list of messages objects
-        tries reading whole messages, but not everything in buffer"""
-        self.response = self._recv(4096)
-        self.logger.debug("Parsing response: {}".format(self.response))
+        """returns list of messages objects
+        tries reading whole messages, but not everything from socket"""
+        self.response = self._recv(self.BUFFER_SIZE)
+        self.logger.debug("Parsing response")
         messages = []
-        self.idx = self.LENGTH_BYTES
+        self.idx = 0
         while self.idx < len(self.response):
             try:
                 self._handle_response_length()
@@ -113,7 +115,7 @@ class PeerConnection:
         for message in messages:
             self.logger.info("Handling {} message".format(message))
             if isinstance(message, (KeepAlive, RequestBlock, CancelRequest, Port)):
-                self.logger.warning("Ignoring message of type {} - not supported".format(type(message).__name__))
+                self.logger.debug("Ignoring message of type {} - not supported".format(type(message).__name__))
             elif isinstance(message, Choke):
                 self.peer_choking = True
             elif isinstance(message, UnChoke):
@@ -146,7 +148,7 @@ class PeerConnection:
 
     def send(self, message: bytes):
         """wrapper of socket.send, applying BitTorrent specifications with `choking` and `interested` values"""
-        self.socket.send(PeerConnection.keepalive_message)
+        self.socket.send(self.keepalive_message)
         if not self.am_interested:
             self._send_peer_interested()
         if self.peer_choking:
@@ -155,5 +157,4 @@ class PeerConnection:
             self.socket.send(message)
         except Exception as e:
             self.socket.close()
-            raise PeerConnection.Exception("{} Failed to send message to socket: {}".format(self, e))
-
+            raise PeerConnection.Exception("Failed to send message to socket: {}".format(e))

@@ -1,3 +1,4 @@
+import math
 import bencode
 
 from torf import Torrent
@@ -39,13 +40,25 @@ class MyTorrent(Torrent):
         and used list instead of generator"""
         return [self.raw_hashes[idx:idx+20] for idx in range(0, self.pieces)]
 
-    # TODO: instead of pieces
     @property
-    def subpieces_count(self) -> int:
+    def piece_count(self) -> int:
+        """number of hashed pieces"""
         return len(self.raw_hashes) // 20
 
     @property
-    def subpiece_size(self) -> int:
-        import math
-        minimal_size = round(self.total_length / self.subpieces_count)
-        return 2**math.ceil(math.log(minimal_size, 2))  # rounds up to highest 2**x value
+    def my_piece_size(self) -> int:
+        """size of hashed piece [bytes]"""
+        minimal_size = round(self.total_length / self.piece_count)
+        return 2 ** math.ceil(math.log(minimal_size, 2))  # rounds up to highest 2**x value
+
+    @property
+    def block_count(self) -> int:
+        """number of maximum blocks in a piece"""
+        return math.ceil(self.my_piece_size / self.block_size)
+
+    @property
+    def block_size(self) -> int:
+        """block length to request from peer [bytes]"""
+        return self.piece_size
+
+

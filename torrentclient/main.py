@@ -1,17 +1,17 @@
-import os
 import queue
+import argparse
+from typing import List
 
-from torrentclient.torcode.mytorrent import MyTorrent
-from torrentclient.client.trackerinteract.parallel import map_parallel
-from torrentclient.client.trackerinteract.tracker import Tracker
-from torrentclient.client.trackerinteract.requestpeers import RequestPeers
-from torrentclient.client.trackerinteract.handleresponse import HandleResponse
-from torrentclient.client.peerinteract.handshake import PeerHandshake
-from torrentclient.client.peerinteract.connection import PeerConnection
-from torrentclient.client.peerinteract.getpiece import GetPiece
+from torrentclient.mytorrent import MyTorrent
+from torrentclient.trackerinteract.tracker import Tracker
+from torrentclient.trackerinteract.requestpeers import RequestPeers
+from torrentclient.trackerinteract.handleresponse import HandleResponse
+from torrentclient.peerinteract.handshake import PeerHandshake
+from torrentclient.peerinteract.connection import PeerConnection
+from torrentclient.peerinteract.getpiece import GetPiece
 
 
-def add_peers(tracker_url: str, torrent: MyTorrent) -> []:
+def add_peers(tracker_url: str, torrent: MyTorrent) -> List:
     try:
         response = RequestPeers(Tracker(tracker_url), torrent).send()
     except (Tracker.Exception, RequestPeers.Exception) as e:
@@ -33,20 +33,17 @@ def add_peers(tracker_url: str, torrent: MyTorrent) -> []:
 def next_connected_peer(peers: queue.Queue, torrent: MyTorrent) -> PeerConnection:
     while not peers.empty():
         peer = peers.get()
-        if (peer.ip_address, peer.port) in next_connected_peer.seen_peers:
-            continue
-        else:
-            next_connected_peer.seen_peers.add((peer.ip_address, peer.port))
         hs = PeerHandshake(peer=peer, torrent=torrent)
         try:
             connection = hs.handshake()
         except PeerHandshake.Exception as e:
-            hs.logger.error("Failed to handshake {}: {}".format(peer, e))
+            hs.logger.error(e)
         else:
             hs.logger.info("Connected to {}!".format(peer))
+            peers.put(peer)  # move it back to end of queue
             return connection
+    hs.logger.warning("No peers left!")
     return None
-next_connected_peer.seen_peers = set()
 
 
 def get_content(torrent_path: str):
@@ -60,9 +57,8 @@ def get_content(torrent_path: str):
     trackers.extend([tracker[:-1]] for tracker in open(os.path.join(os.getcwd(), "tests\\trackers.txt"), "r").readlines())
     peers = map_parallel(add_peers, [(tracker_url[0], torrent) for tracker_url in trackers], 30)
     """
-
     # TODO: remove:
-    from torrentclient.client.peerinteract.peer import Peer
+    from torrentclient.peerinteract.peer import Peer
     peers = [Peer(*(line.replace('\n', '').split(':'))) for line in open("ubuntu18_peers.txt", 'r').readlines()]
 
     peers_queue = queue.Queue()
@@ -71,14 +67,15 @@ def get_content(torrent_path: str):
     #with open("ubuntu18_peers.txt", "w+") as out:
     #   out.write("\n".join("{}:{}".format(peer.ip_address, peer.port) for peer in peers))
 
+    # removes duplicates
+    peers = set(peers)
     for peer in peers:
         peers_queue.put(peer)
 
     connection = next_connected_peer(peers_queue, torrent)
-    pieces = []
     piece_idx = 0
-    GetPiece.logger.info("Trying to get {} pieces".format(torrent.pieces))
-    while piece_idx < torrent.pieces and connection is not None:
+    GetPiece.logger.info("Trying to get {} pieces".format(torrent.piece_count))
+    while piece_idx < torrent.piece_count and connection is not None:
         try:
             piece = GetPiece(peer_connection=connection, torrent=torrent, piece_idx=piece_idx).get()
         except (GetPiece.Exception, PeerConnection.Exception) as e:
@@ -87,12 +84,17 @@ def get_content(torrent_path: str):
             connection = next_connected_peer(peers_queue, torrent)
         else:
             GetPiece.logger.info("Successfully obtained piece #{} with {}".format(piece_idx, connection))
-            pieces.append(piece)
+            with open(torrent.name, "ab+") as out:
+                out.write(piece)
             piece_idx += 1
     if connection is not None:
         connection.socket.close()
-    with open("result.iso", "wb+") as out:
-        out.write(b''.join(pieces))
-    print(pieces)
-    if len(pieces) != torrent.pieces:
+    if piece_idx != torrent.piece_count:
         raise RuntimeError("Could not get all pieces of {}! Got only {}".format(torrent.name, len(pieces)))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog='torrent-client')
+    parser.add_argument("path")
+    args=parser.parse_args()
+    get_content(torrent_path=args.path)

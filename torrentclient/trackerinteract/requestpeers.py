@@ -1,8 +1,8 @@
 import logging
 
-from torrentclient.torcode.mytorrent import MyTorrent
-from torrentclient.client.peerinteract.peer import Peer
-from torrentclient.client.trackerinteract.tracker import Tracker
+from torrentclient.mytorrent import MyTorrent
+from torrentclient.peerinteract.peer import Peer
+from torrentclient.trackerinteract.tracker import Tracker
 
 
 class RequestPeers:

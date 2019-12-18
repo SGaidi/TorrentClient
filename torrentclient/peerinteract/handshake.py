@@ -1,9 +1,12 @@
 import socket
 import logging
 
-from torrentclient.torcode.mytorrent import MyTorrent
-from torrentclient.client.peerinteract.peer import Peer
-from torrentclient.client.peerinteract.connection import PeerConnection
+from torrentclient.mytorrent import MyTorrent
+from torrentclient.peerinteract.peer import Peer
+from torrentclient.peerinteract.connection import PeerConnection
+
+
+#socket.setdefaulttimeout(15)
 
 
 class PeerHandshake:
@@ -12,8 +15,6 @@ class PeerHandshake:
     PSTR = bytes("BitTorrent protocol", "utf-8")
     PSTR_LEN = bytes([len(PSTR)])
     RESERVED = b'\x00' * 8
-
-    RESPONSE_BUFFER_SIZE = 1024
 
     PSTR_LEN_BYTE = 0
     PSTR_BYTE = 1
@@ -87,14 +88,6 @@ class PeerHandshake:
         self.peer.peer_id = self.peer_response[self.PEER_ID_BYTE:]
         if len(self.peer.peer_id) != 20:
             self.logger.warning("peer_id ({}) length {}".format(self.peer.peer_id, len(self.peer.peer_id)))
-        """
-        # TODO: used only in dictionary mode where compact=0?
-        if self.peer.peer_id != peer_id:
-           raise PeerHandshake.Exception(
-               "{}'s peer id ({}) does not match peer_id from tracker ({})".format(
-                    self.peer, response_peer_id, peer_id
-                ))
-        """
 
     def _validate_response(self):
         """raises an exception if the received handshake is not as expected"""

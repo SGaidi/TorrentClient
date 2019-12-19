@@ -1,7 +1,9 @@
+import os
 import queue
 import argparse
 from typing import List
 
+from torrentclient.parallel import map_parallel
 from torrentclient.mytorrent import MyTorrent
 from torrentclient.trackerinteract.tracker import Tracker
 from torrentclient.trackerinteract.requestpeers import RequestPeers
@@ -33,6 +35,7 @@ def add_peers(tracker_url: str, torrent: MyTorrent) -> List:
 def next_connected_peer(peers: queue.Queue, torrent: MyTorrent) -> PeerConnection:
     while not peers.empty():
         peer = peers.get()
+        peers.put(peer)  # move it back to end of queue
         hs = PeerHandshake(peer=peer, torrent=torrent)
         try:
             connection = hs.handshake()
@@ -40,7 +43,6 @@ def next_connected_peer(peers: queue.Queue, torrent: MyTorrent) -> PeerConnectio
             hs.logger.error(e)
         else:
             hs.logger.info("Connected to {}!".format(peer))
-            peers.put(peer)  # move it back to end of queue
             return connection
     hs.logger.warning("No peers left!")
     return None
@@ -49,23 +51,22 @@ def next_connected_peer(peers: queue.Queue, torrent: MyTorrent) -> PeerConnectio
 def get_content(torrent_path: str):
     torrent = MyTorrent.read(filepath=torrent_path)
 
-    """
     if torrent.trackers is not None:
         trackers = torrent.trackers
     else:
         trackers = []
     trackers.extend([tracker[:-1]] for tracker in open(os.path.join(os.getcwd(), "tests\\trackers.txt"), "r").readlines())
     peers = map_parallel(add_peers, [(tracker_url[0], torrent) for tracker_url in trackers], 30)
-    """
+
     # TODO: remove:
-    from torrentclient.peerinteract.peer import Peer
-    peers = [Peer(*(line.replace('\n', '').split(':'))) for line in open("ubuntu18_peers.txt", 'r').readlines()]
+    #from torrentclient.peerinteract.peer import Peer
+    #peers = [Peer(*(line.replace('\n', '').split(':'))) for line in open("ubuntu18_peers.txt", 'r').readlines()]
 
     peers_queue = queue.Queue()
 
     # TODO: remove:
-    #with open("ubuntu18_peers.txt", "w+") as out:
-    #   out.write("\n".join("{}:{}".format(peer.ip_address, peer.port) for peer in peers))
+    with open("ubuntu18_peers.txt", "w+") as out:
+       out.write("\n".join("{}:{}".format(peer.ip_address, peer.port) for peer in peers))
 
     # removes duplicates
     peers = set(peers)
@@ -84,13 +85,13 @@ def get_content(torrent_path: str):
             connection = next_connected_peer(peers_queue, torrent)
         else:
             GetPiece.logger.info("Successfully obtained piece #{} with {}".format(piece_idx, connection))
-            with open(torrent.name, "ab+") as out:
+            with open(os.path.basename(torrent.name), "ab+") as out:
                 out.write(piece)
             piece_idx += 1
     if connection is not None:
         connection.socket.close()
     if piece_idx != torrent.piece_count:
-        raise RuntimeError("Could not get all pieces of {}! Got only {}".format(torrent.name, len(pieces)))
+        raise RuntimeError("Could not get all pieces of {}! Got only {}".format(torrent.name, piece_idx))
 
 
 if __name__ == "__main__":

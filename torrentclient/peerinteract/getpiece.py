@@ -9,8 +9,6 @@ from torrentclient.peercode.allmessages import RequestBlock
 class GetPiece:
     """Class for getting a torrent piece using a peer connection"""
 
-    RECEIVE_PIECE_RETRY = 3
-
     logger = logging.getLogger('get-piece')
 
     class Exception(Exception):
@@ -20,6 +18,7 @@ class GetPiece:
         self.peer_connection = peer_connection
         self.torrent = torrent
         self.piece_idx = piece_idx
+        self.previous_sha = None
 
     @retry(Exception, tries=3)
     def get_block(self, block_idx: int, is_last_block: False):
@@ -57,6 +56,7 @@ class GetPiece:
             ))
         return recv_message.block
 
+    @retry(Exception, tries=3)
     def get(self) -> bytes:
         import hashlib
         piece = b''
@@ -64,13 +64,14 @@ class GetPiece:
             last_block_idx = self.torrent.block_count - 1
         else:
             last_block_idx = -1
-        self.logger.info("Trying to get {} blocks".format(self.torrent.block_count))
+        self.logger.info("Trying to get {} blocks from piece #{}".format(self.torrent.block_count, self.piece_idx))
         # TODO: if it is the last piece - some blocks requests will fail or return smaller blocks
         for block_idx in range(0, self.torrent.block_count):
             is_last_block = block_idx == last_block_idx
             piece += self.get_block(block_idx=block_idx, is_last_block=is_last_block)
         if hashlib.sha1(piece).digest() != self.torrent.hashes[self.piece_idx]:
-            self.logger.debug(len(piece))
+            if self.previous_sha is not None and self.previous_sha == hashlib.sha1(piece).digest():
+                self.logger.warning("SHA-1 of previous requests are the same!")
             raise GetPiece.Exception("Invalid SHA-1 hash of piece #{}: {}\nExpected: {}".format(
                 self.piece_idx,
                 hashlib.sha1(piece).digest(),

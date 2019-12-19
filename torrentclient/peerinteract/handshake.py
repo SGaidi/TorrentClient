@@ -6,7 +6,7 @@ from torrentclient.peerinteract.peer import Peer
 from torrentclient.peerinteract.connection import PeerConnection
 
 
-#socket.setdefaulttimeout(15)
+socket.setdefaulttimeout(20)
 
 
 class PeerHandshake:

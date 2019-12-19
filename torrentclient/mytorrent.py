@@ -7,6 +7,8 @@ from torf import Torrent
 class MyTorrent(Torrent):
     """Class wrapper to torf's Torrent, adding fixes and additional features"""
 
+    HASH_SIZE = 20  # [bytes]
+
     @classmethod
     def read(cls, *args, **kwargs):
         obj = super().read(*args, **kwargs)
@@ -38,12 +40,12 @@ class MyTorrent(Torrent):
     def hashes(self):
         """fix of hashes attribute in torf
         and used list instead of generator"""
-        return [self.raw_hashes[idx:idx+20] for idx in range(0, self.pieces)]
+        return [self.raw_hashes[idx:idx+self.HASH_SIZE] for idx in range(0, len(self.raw_hashes), self.HASH_SIZE)]
 
     @property
     def piece_count(self) -> int:
         """number of hashed pieces"""
-        return len(self.raw_hashes) // 20
+        return len(self.raw_hashes) // self.HASH_SIZE
 
     @property
     def my_piece_size(self) -> int:

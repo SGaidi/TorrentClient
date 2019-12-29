@@ -35,7 +35,6 @@ class Task(object):
 def map_parallel(func, args_list: list, count: int = None):
     tasks = multiprocessing.JoinableQueue()
     results = multiprocessing.Queue()
-
     if count is None:
         num_consumers = multiprocessing.cpu_count() * 2
     else:

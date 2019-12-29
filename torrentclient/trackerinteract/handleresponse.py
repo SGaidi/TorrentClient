@@ -45,7 +45,7 @@ class HandleResponse:
     def _parse_peers_dict(self):
         try:
             peers_dict = bencode.bdecode(self.bresponse['peers'])
-        except bencode.BencodeDecodeError as e:
+        except bencode.exceptions.BencodeDecodeError as e:
             raise HandleResponse.Exception(e)
         # TODO: complete dictionary parsing
 

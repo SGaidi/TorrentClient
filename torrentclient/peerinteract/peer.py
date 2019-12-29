@@ -35,12 +35,11 @@ class Peer:
     def __eq__(self, other):
         return isinstance(other, Peer) and self.ip_address == other.ip_address and self.port == other.port
 
-    def __str__(self):
-        return "Peer({}:{})".format(self.ip_address, self.port)
-
     def __hash__(self):
         return hash((
             'ip_address', self.ip_address,
             'port', self.port,
         ))
 
+    def __str__(self):
+        return "Peer({}:{})".format(self.ip_address, self.port)

@@ -1,5 +1,4 @@
 import logging
-import traceback
 from typing import List
 
 from torrentclient.peerinteract.peer import Peer
@@ -39,7 +38,7 @@ class PeerConnection:
         return "PeerConnection(peer={})".format(self.peer)
 
     def _recv(self, buffer_size: int) -> bytes:
-        #self.socket.send(self.keepalive_message)
+        self.socket.send(self.keepalive_message)
         try:
             return self.socket.recv(buffer_size)
         except Exception as e:
@@ -51,7 +50,7 @@ class PeerConnection:
         missing_bytes = b''
         while len(missing_bytes) < missing_count:
             recv_bytes = self._recv(missing_count)
-            self.logger.info("Received {} Block bytes".format(len(recv_bytes)))
+            self.logger.debug("Received {} Block bytes".format(len(recv_bytes)))
             if recv_bytes == b'':
                 raise PeerConnection.Exception("Expected {} more bytes and did not receive them".format(
                     missing_count))
@@ -103,14 +102,14 @@ class PeerConnection:
                 self._determine_message_type()
             except (PeerMessage.Exception, KeyError) as e:
                 self.logger.error("Failed to parse messages, dropping all read messages from buffer: {}".format(e))
-                traceback.print_exc()
                 return messages
             messages.append(self.message)
             self.idx += self.length
         return messages
 
     def _handle_messages(self, messages: list) -> List[Block]:
-        """change state machine according to received messages, and append any Block messages"""
+        """changes state machine according to received messages
+        and appends any Block messages to be handled by GetPiece class"""
         block_messages = []
         for message in messages:
             self.logger.info("Handling {} message".format(message))
@@ -128,20 +127,22 @@ class PeerConnection:
                 block_messages.append(message)
         return block_messages
 
-    def expect_blocks(self) -> list:
+    def expect_blocks(self) -> List[Block]:
+        """returns a list of any received blocks"""
         messages = self._parse_response()
         return self._handle_messages(messages)
 
     def _wait_peer_unchoked(self):
-        for retry_count in range(3):
+        """waits till peer can handle new requests"""
+        for retry_count in range(6):
             self.logger.info("Waiting for {} to send UnChoke message".format(self.peer))
-            block_messages = self.expect_blocks()
-            assert len(block_messages) == 0, "_wait_peer_unchoked should be called before sending any requests"
+            self.expect_blocks()
             if not self.peer_choking:
                 return
         raise PeerConnection.Exception("Timeout of UnChoke message")
 
     def _send_peer_interested(self):
+        """notifies peer it will start sending requests"""
         self.logger.info("Sending Interested message to {}".format(self.peer))
         self.socket.send(Interested().create())
         self.am_interested = True

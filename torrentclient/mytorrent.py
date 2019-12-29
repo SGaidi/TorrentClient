@@ -63,4 +63,7 @@ class MyTorrent(Torrent):
         """block length to request from peer [bytes]"""
         return self.piece_size
 
-
+    @property
+    def out_filename(self) -> str:
+        import os
+        return os.path.basename(self.path).split(".torrent")[0]  # removes '.torrent' suffix

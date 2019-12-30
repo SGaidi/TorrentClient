@@ -28,6 +28,11 @@ class MyTorrent(Torrent):
         return self._total_length
 
     @property
+    def paths_and_lengths(self) -> list:
+        bcode = bencode.bread(self.path)
+        return [(file['path'], file['length']) for file in bcode['info']['files']]
+
+    @property
     def infohash(self) -> bytes:
         import hashlib
         return hashlib.sha1(bencode.bencode(bencode.bread(self.path)['info'])).digest()

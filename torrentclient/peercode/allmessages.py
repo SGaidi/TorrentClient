@@ -1,3 +1,5 @@
+"""All classes below inherit from PeerMessages.
+Each message presents a specific message from the peer wire BitTorrent protocol."""
 from torrentclient.peercode.message import PeerMessage
 
 
@@ -6,41 +8,40 @@ from torrentclient.peercode.message import PeerMessage
 
 class KeepAlive(PeerMessage):
     """Peers may close a connection if they receive no messages for a certain period of time, so a keep-alive message
-    must be sent to maintain the connection alive if no command have been sent for a given amount of time.
-    This amount of time is generally two minutes."""
+    must be sent to maintain the connection alive if no command have been sent for a given amount of time."""
 
     MESSAGE_ID = None
 
 
 class Choke(PeerMessage):
-    """Indicating the sending peer cannot and will not handle current and future requests until un-chocked"""
+    """Indicating the sending peer will not handle current and future requests until un-chocked"""
 
     MESSAGE_ID = 0
 
 
 class UnChoke(PeerMessage):
-    """Indicating the sending peer can handle future requests"""
+    """Indicating the sending peer will handle future requests"""
 
     MESSAGE_ID = 1
 
 
 class Interested(PeerMessage):
-    """Indicating the sending peer will send requests when the receiver is un-choked"""
+    """Indicating the sending peer will send requests when the receiver peer is un-choked"""
 
     MESSAGE_ID = 2
 
 
 class NotInterested(PeerMessage):
-    """Indicating the sending peer will stop sendind requests"""
+    """Indicating the sending peer will stop sending requests"""
 
     MESSAGE_ID = 3
 
 
-# messages regarding specific pieces and blocks
+# messages regarding existence of pieces
 
 
 class HavePiece(PeerMessage):
-    """Indicating the sending peer has successfully downloaded and verified a specific piece"""
+    """Indicating the sending peer has a specific piece"""
 
     MESSAGE_ID = 4
 
@@ -65,7 +66,8 @@ class HavePiece(PeerMessage):
 
 
 class PiecesBitField(PeerMessage):
-    """May only be sent immediately after the handshaking sequence is completed, and before any other messages are sent,
+    """Indicating which of all of the pieces the sending peer has, using a bitfield.
+    May only be sent immediately after the handshaking sequence is completed, and before any other messages are sent,
     It is optional, and need not be sent if a client has no pieces."""
 
     MESSAGE_ID = 5

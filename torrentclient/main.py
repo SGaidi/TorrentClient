@@ -67,9 +67,9 @@ def next_connected_peer(peers: Queue, torrent: MyTorrent) -> PeerConnection:
             return connection
 
 
-def write_piece(pieces_queue: Queue, peers_queue: Queue, torrent: MyTorrent, pieces_counter: Value, counter_lock: Lock):
+def write_piece(pieces_queue: Queue, peers_queue: Queue, torrent: MyTorrent, pieces_counter: Value):
     """pops a piece index and a PeerConnection from the corresponding queues,
-    tries to get and write the piece index with the PeerConnection.
+    tries to get and write the piece with the PeerConnection.
     in case of failure, puts piece index back to queue."""
     piece_idx = pieces_queue.get()
     connection = next_connected_peer(peers_queue, torrent)
@@ -86,7 +86,7 @@ def write_piece(pieces_queue: Queue, peers_queue: Queue, torrent: MyTorrent, pie
             with open(torrent.out_filename, "wb+") as out:
                 out.seek(piece_idx*torrent.my_piece_size)
                 out.write(piece)
-            with counter_lock:
+            with pieces_counter.get_lock():
                 pieces_counter.value += 1
             piece_idx = pieces_queue.get()
     if connection is not None:
@@ -102,18 +102,17 @@ def feed_pieces_queue(pieces_queue: Queue, pieces_count: int, parallel_peers_cou
     GetPiece.logger.debug("Done feeding queue: {}".format(pieces_queue.qsize()))
 
 
-def update_progress(total_pieces: int, pieces_counter: Value, counter_lock: Lock):
+def update_progress(total_pieces: int, pieces_counter: Value):
     """updates file with number of pieces obtained out of the total amount"""
     import time
     while True:
-        with open("progress.txt", "w+") as out:
-            with counter_lock:
+        with pieces_counter.get_lock():
+            with open("progress.txt", "w+") as out:
                 out.write("{}/{} downloaded".format(
-                    str(pieces_counter.value), total_pieces))
+                    pieces_counter.value, total_pieces))
+            if pieces_counter.value == total_pieces:
+                return
         time.sleep(1)
-        with counter_lock:
-            if pieces_counter.value < total_pieces:
-                break
 
 
 def write_pieces(peers_queue: Queue, torrent: MyTorrent):
@@ -123,23 +122,20 @@ def write_pieces(peers_queue: Queue, torrent: MyTorrent):
     processes = []
     parallel_peers_count = peers_queue.qsize() // 5
     pieces_counter = Value('i', 0)
-    counter_lock = Lock()
     GetPiece.logger.debug("parallel_peers_count={}".format(parallel_peers_count))
 
     # run `parallel_peers_count` identical processes of trying to write a piece
     for _ in range(parallel_peers_count):
-        peer_process = Process(target=write_piece, args=(pieces_queue, peers_queue, torrent, pieces_counter, counter_lock))
+        peer_process = Process(target=write_piece, args=(pieces_queue, peers_queue, torrent, pieces_counter))
         processes.append(peer_process)
-
     # helper process to update progress of download
-    progress_process = Process(target=update_progress, args=(torrent.piece_count, pieces_counter, counter_lock))
+    progress_process = Process(target=update_progress, args=(torrent.piece_count, pieces_counter))
     processes.append(progress_process)
 
     for process in processes:
         process.start()
     feed_pieces_queue(pieces_queue, torrent.piece_count, parallel_peers_count)
-
-    for process in processes[:-1]:  # except last daemon process
+    for process in processes:
         process.join()
 
 

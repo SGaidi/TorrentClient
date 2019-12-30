@@ -47,7 +47,7 @@ class HavePiece(PeerMessage):
 
     def __init__(self, piece_index: int):
         """
-        :param piece_index: zero-based index of a piece that has just been downloaded and verified via the hash
+        :param piece_index: zero-based index of a piece
         """
         self.piece_index = piece_index
         if not isinstance(piece_index, int):
@@ -59,8 +59,9 @@ class HavePiece(PeerMessage):
 
     @classmethod
     def from_payload(cls, payload: bytes):
-        if len(payload) != 4:
-            raise super().Exception("Invalid payload length ({}), should be 4 bytes".format(len(payload)))
+        if len(payload) != cls.PARAM_LENGTH:
+            raise super().Exception("Invalid payload length ({}), should be {} bytes".format(
+                len(payload), cls.PARAM_LENGTH))
         piece_index = int.from_bytes(payload, byteorder="big")
         return cls(piece_index=piece_index)
 
@@ -74,7 +75,7 @@ class PiecesBitField(PeerMessage):
 
     def __init__(self, bitfield: bytes):
         """"
-        :param bitfield: representing the pieces that have been successfully downloaded,
+        :param bitfield: representing the pieces indices,
             where the high bit in the first byte corresponds to piece index 0.
             spare bits at the end are set to zero.
         """
@@ -90,7 +91,7 @@ class PiecesBitField(PeerMessage):
 
 
 class RequestBlock(PeerMessage):
-    """Request of a specific block from a piece"""
+    """Request of a specific block of a piece"""
 
     MESSAGE_ID = 6
 
@@ -98,7 +99,7 @@ class RequestBlock(PeerMessage):
         """
         :param piece_index: zero-based index of a piece
         :param block_begin: zero-based byte offset within the piece
-        :param block_length: block length in bytes, use of 2^14 (16KB) is recommended by BitTorrent specifications
+        :param block_length: block length in bytes
         """
         self.piece_index = piece_index
         self.block_begin = block_begin
@@ -116,11 +117,12 @@ class RequestBlock(PeerMessage):
 
     @classmethod
     def from_payload(cls, payload: bytes):
-        if len(payload) != 12:
-            raise super().Exception("Invalid payload length ({}), should be 4 bytes".format(len(payload)))
-        piece_index = int.from_bytes(payload[:4], byteorder="big")
-        block_begin = int.from_bytes(payload[4:8], byteorder="big")
-        block_length = int.from_bytes(payload[8:12], byteorder="big")
+        if len(payload) != cls.PARAM_LENGTH*3:
+            raise super().Exception("Invalid payload length ({}), should be {} bytes".format(
+                len(payload), cls.PARAM_LENGTH*3))
+        piece_index = int.from_bytes(payload[:cls.PARAM_LENGTH], byteorder="big")
+        block_begin = int.from_bytes(payload[cls.PARAM_LENGTH:cls.PARAM_LENGTH*2], byteorder="big")
+        block_length = int.from_bytes(payload[cls.PARAM_LENGTH*2:cls.PARAM_LENGTH*3], byteorder="big")
         return cls(piece_index, block_begin, block_length)
 
 
@@ -145,9 +147,9 @@ class Block(PeerMessage):
 
     @classmethod
     def from_payload(cls, payload: bytes):
-        piece_index = int.from_bytes(payload[:4], byteorder="big")
-        block_begin = int.from_bytes(payload[4:8], byteorder="big")
-        block = payload[8:]
+        piece_index = int.from_bytes(payload[:cls.PARAM_LENGTH], byteorder="big")
+        block_begin = int.from_bytes(payload[cls.PARAM_LENGTH:cls.PARAM_LENGTH*2], byteorder="big")
+        block = payload[cls.PARAM_LENGTH*2:]
         return cls(piece_index, block_begin, block)
 
 
@@ -178,11 +180,12 @@ class CancelRequest(PeerMessage):
 
     @classmethod
     def from_payload(cls, payload: bytes):
-        if len(payload) != 12:
-            raise super().Exception("Invalid payload length ({}), should be 12 bytes".format(len(payload)))
-        piece_index = int.from_bytes(payload[:4], byteorder="big")
-        block_begin = int.from_bytes(payload[4:8], byteorder="big")
-        block_length = int.from_bytes(payload[8:12], byteorder="big")
+        if len(payload) != cls.PARAM_LENGTH*3:
+            raise super().Exception("Invalid payload length ({}), should be {} bytes".format(
+                len(payload), cls.PARAM_LENGTH*3))
+        piece_index = int.from_bytes(payload[:cls.PARAM_LENGTH], byteorder="big")
+        block_begin = int.from_bytes(payload[cls.PARAM_LENGTH:cls.PARAM_LENGTH*2], byteorder="big")
+        block_length = int.from_bytes(payload[cls.PARAM_LENGTH*2:cls.PARAM_LENGTH*3], byteorder="big")
         return cls(piece_index, block_begin, block_length)
 
 
@@ -202,9 +205,10 @@ class Port(PeerMessage):
 
     @classmethod
     def from_payload(cls, payload: bytes):
-        if len(payload) != 4:
-            raise super().Exception("Invalid payload length ({}), should be 4 bytes".format(len(payload)))
-        listen_port = int.from_bytes(payload[:4], byteorder="big")
+        if len(payload) != cls.PARAM_LENGTH:
+            raise super().Exception("Invalid payload length ({}), should be {} bytes".format(
+                len(payload), cls.PARAM_LENGTH))
+        listen_port = int.from_bytes(payload[:cls.PARAM_LENGTH], byteorder="big")
         return cls(listen_port)
 
 

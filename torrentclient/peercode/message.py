@@ -4,6 +4,8 @@ import logging
 class PeerMessage:
     """Data class of a peer message in BitTorrent protocol"""
 
+    PARAM_LENGTH = 4
+
     logger = logging.getLogger('peer-message')
 
     class Exception(Exception):
@@ -11,7 +13,7 @@ class PeerMessage:
 
     @staticmethod
     def int_to_4bytes(x: int) -> bytes:
-        return x.to_bytes(length=4, byteorder="big", signed=False)
+        return x.to_bytes(length=PeerMessage.PARAM_LENGTH, byteorder="big", signed=False)
 
     def __init__(self, payload: bytes = b''):
         """

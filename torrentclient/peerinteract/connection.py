@@ -50,7 +50,7 @@ class PeerConnection:
         missing_bytes = b''
         while len(missing_bytes) < missing_count:
             recv_bytes = self._recv(missing_count)
-            self.logger.debug("Received {} Block bytes".format(len(recv_bytes)))
+            self.logger.debug("Received {} bytes".format(len(recv_bytes)))
             if recv_bytes == b'':
                 raise PeerConnection.Exception("Expected {} more bytes and did not receive them".format(
                     missing_count))

@@ -12,8 +12,8 @@ class PeerMessage:
         """An exception with remote peer occurred"""
 
     @staticmethod
-    def int_to_4bytes(x: int) -> bytes:
-        return x.to_bytes(length=PeerMessage.PARAM_LENGTH, byteorder="big", signed=False)
+    def int_to_4bytes(param: int) -> bytes:
+        return param.to_bytes(length=PeerMessage.PARAM_LENGTH, byteorder="big", signed=False)
 
     def __init__(self, payload: bytes = b''):
         """

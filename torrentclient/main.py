@@ -154,8 +154,6 @@ def partition_content_to_files(torrent: MyTorrent):
         except KeyError:
             # single file - move it
             os.rename(torrent.out_filename, parent_path)
-    if os.path.exists(torrent.out_filename):
-        os.remove(torrent.out_filename)
 
 
 def get_files(torrent_path: str):
@@ -168,7 +166,8 @@ def get_files(torrent_path: str):
     write_pieces(peers_queue, torrent)
 
     partition_content_to_files(torrent)
-    os.remove(torrent.out_filename)
+    if os.path.exists(torrent.out_filename):
+        os.remove(torrent.out_filename)
     GetPiece.logger.info("Done downloading torrent content!")
 
 

@@ -108,6 +108,6 @@ class GetPiece:
             self.piece += received_block
         if not self._is_last_piece:
             # No idea why the last piece hash is incorrect, but it won't work otherwise
-            # TODO: fix this
+            # TODO: fix this - probably append zeros?
             self._validate_hash()
         return self.piece

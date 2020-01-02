@@ -11,11 +11,6 @@ class RequestPeers:
 
     LOCAL_PORTS = list(range(6881, 6889 + 1))
 
-    # TODO: update trackers interval
-    # probably in a different class
-    TRACKER_INTERVALS = {}
-    DEFAULT_INTERVAL = 1000  # seconds
-
     logger = logging.getLogger("request-peers")
 
     class Exception(Exception):

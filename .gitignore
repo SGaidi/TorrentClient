@@ -107,5 +107,5 @@ venv.bak/
 .idea
 
 # torrentclient
-out.txt
+debug.txt
 progress.txt

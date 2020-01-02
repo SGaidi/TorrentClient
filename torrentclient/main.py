@@ -53,9 +53,6 @@ def next_connected_peer(peers: Queue, torrent: MyTorrent) -> PeerConnection:
     from torrentclient.peerinteract.handshake import PeerHandshake
     while not peers.empty():
         peer = peers.get()
-        # TODO: use priority queue
-        #  so that recently connected/working peers will be tried again earlier than other peers
-        #  but also do not put peers until finished using them
         peers.put(peer)  # move back to end of queue
         hs = PeerHandshake(peer=peer, torrent=torrent)
         try:
@@ -140,23 +137,30 @@ def write_pieces(peers_queue: Queue, torrent: MyTorrent):
 
 def partition_content_to_files(torrent: MyTorrent):
     """partition the entire torrent content to actual files using the torrent meta-info"""
-    if not os.path.exists("downloads"):
-        os.makedirs("downloads")
+    parent_path = os.path.join("downloads", torrent.out_filename)
+    if not os.path.exists(parent_path):
+        os.makedirs(parent_path)
     with open(torrent.out_filename, "rb") as content:
-        for path, length in torrent.paths_and_lengths:
-            path = ["downloads"] + path
-            fullpath = os.path.join(*path)
-            dirpath = os.path.dirname(fullpath)
-            if not os.path.exists(dirpath):
-                os.makedirs(dirpath)
-            GetPiece.logger.info("Writing {} bytes to {}".format(length, fullpath))
-            with open(fullpath, "wb+") as out:
-                out.write(content.read(length))
-                print("Written {}!".format(fullpath))
+        try:
+            for relative_path, length in torrent.paths_and_lengths:
+                relative_path = [parent_path] + relative_path
+                full_path = os.path.join(*relative_path)
+                dir_path = os.path.dirname(full_path)
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path)
+                GetPiece.logger.info("Writing {} bytes to {}".format(length, full_path))
+                with open(full_path, "wb+") as out:
+                    out.write(content.read(length))
+        except KeyError:
+            # single file - move it
+            os.rename(torrent.out_filename, parent_path)
+    if os.path.exists(torrent.out_filename):
+        os.remove(torrent.out_filename)
 
 
 def get_files(torrent_path: str):
     torrent = MyTorrent.read(filepath=torrent_path)
+    open(torrent.out_filename, "w")
 
     peers_queue = Queue()
     for peer in peers_from_trackers(torrent):
@@ -164,7 +168,8 @@ def get_files(torrent_path: str):
     write_pieces(peers_queue, torrent)
 
     partition_content_to_files(torrent)
-    print("Done downloading torrent content!")
+    os.remove(torrent.out_filename)
+    GetPiece.logger.info("Done downloading torrent content!")
 
 
 if __name__ == "__main__":
@@ -175,4 +180,6 @@ if __name__ == "__main__":
     log_level = logging.INFO
     if args.verbose:
         log_level = logging.DEBUG
+    for logger in logging.root.manager.loggerDict.values():
+        logger.setLevel(log_level)
     get_files(torrent_path=args.path)

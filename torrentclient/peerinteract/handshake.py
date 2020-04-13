@@ -3,7 +3,7 @@ import logging
 
 from torrentclient.mytorrent import MyTorrent
 from torrentclient.peerinteract.peer import Peer
-from torrentclient.peerinteract.connection import PeerConnection
+from torrentclient.peerinteract.connections import PeerConnection
 
 
 socket.setdefaulttimeout(30)

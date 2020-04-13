@@ -2,7 +2,7 @@ import os
 import logging
 import argparse
 from typing import List
-from multiprocessing import Queue, Process, Value, Lock
+from multiprocessing import Queue, Process, Value
 
 from torrentclient.mytorrent import MyTorrent
 from torrentclient.peerinteract.peer import Peer
@@ -174,11 +174,5 @@ def get_files(torrent_path: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='torrentclient')
     parser.add_argument("path")
-    parser.add_argument('-v', "--verbose", action="store_true")
     args = parser.parse_args()
-    log_level = logging.INFO
-    if args.verbose:
-        log_level = logging.DEBUG
-    for logger in logging.root.manager.loggerDict.values():
-        logger.setLevel(log_level)
     get_files(torrent_path=args.path)

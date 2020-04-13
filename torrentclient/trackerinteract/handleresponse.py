@@ -82,6 +82,5 @@ class HandleResponse:
     def get_peers(self):
         self._validate_response()
         self._decode_response()
-        # TODO: handle interval in response
         self._parse_peers()
         return self._peers

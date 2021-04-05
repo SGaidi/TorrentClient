@@ -1,4 +1,4 @@
-# torrentclient
+# Torrent Client
 
 This is a cli BitTorrent client made in computer networking workshop.
 
